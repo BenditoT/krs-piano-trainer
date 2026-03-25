@@ -1010,17 +1010,17 @@
             ctx.beginPath();
             ctx.roundRect(nx + pad, yTop, nw - pad * 2, nh, r);
 
-            const grad = ctx.createLinearGradient(nx, yTop, nx, yTop + nh);
-            grad.addColorStop(0, color + (isActive ? 'FF' : 'DD'));
-            grad.addColorStop(1, color);
-            ctx.fillStyle = grad;
+            // Performance: solid fill + top highlight instead of per-note gradient
+            ctx.fillStyle = color + (isActive ? 'FF' : 'E8');
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            if (nh > 12) {
+            // Top highlight strip (simulates gradient effect without creating gradient objects)
+            if (nh > 10) {
+              const highlightH = Math.min(nh * 0.3, 12);
               ctx.beginPath();
-              ctx.roundRect(nx + pad + 2, yTop + 2, nw - pad * 2 - 4, Math.min(nh * 0.25, 10), [r, r, 0, 0]);
-              ctx.fillStyle = 'rgba(255,255,255,0.22)';
+              ctx.roundRect(nx + pad + 1, yTop + 1, nw - pad * 2 - 2, highlightH, [r, r, 0, 0]);
+              ctx.fillStyle = isActive ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.18)';
               ctx.fill();
             }
 
@@ -1828,7 +1828,7 @@
           <div class="header">
             <div class="header-left">
               ${screen === 'playing' && html`
-                <button class="btn btn-icon" onClick=${goBack} title="Zurück" style="font-size:14px;">←</button>
+                <button class="btn btn-icon" onClick=${goBack} title="Zurück" aria-label="Zurück zur Songauswahl" style="font-size:14px;">←</button>
               `}
               <div class="logo-badge">KRS</div>
               <div>
@@ -1843,11 +1843,11 @@
               ${hasMultipleTracks && screen === 'playing' && html`
                 <div class="track-selector">
                   <button class="track-option melody ${practiceMode === 'melody' ? 'active' : ''}"
-                          onClick=${() => changePracticeMode('melody')}>RH</button>
+                          onClick=${() => changePracticeMode('melody')} aria-label="Rechte Hand üben">RH</button>
                   <button class="track-option accomp ${practiceMode === 'accompaniment' ? 'active' : ''}"
-                          onClick=${() => changePracticeMode('accompaniment')}>LH</button>
+                          onClick=${() => changePracticeMode('accompaniment')} aria-label="Linke Hand üben">LH</button>
                   <button class="track-option all ${practiceMode === 'all' ? 'active' : ''}"
-                          onClick=${() => changePracticeMode('all')}>Beide</button>
+                          onClick=${() => changePracticeMode('all')} aria-label="Beide Hände üben">Beide</button>
                 </div>
               `}
 
@@ -1866,8 +1866,8 @@
               </div>
 
               <div class="toggle-group" title="Notennamen anzeigen">
-                <button class="toggle-option ${showNames ? 'active' : ''}" onClick=${() => setShowNames(true)}>ABC</button>
-                <button class="toggle-option ${!showNames ? 'active' : ''}" onClick=${() => setShowNames(false)}>—</button>
+                <button class="toggle-option ${showNames ? 'active' : ''}" onClick=${() => setShowNames(true)} aria-label="Notennamen anzeigen">ABC</button>
+                <button class="toggle-option ${!showNames ? 'active' : ''}" onClick=${() => setShowNames(false)} aria-label="Notennamen ausblenden">—</button>
               </div>
 
               <button class="btn btn-icon"
@@ -1878,12 +1878,12 @@
                 ${soundOn ? '🔊' : '🔇'}
               </button>
 
-              <button class="btn btn-icon" onClick=${() => setShowTips(true)} title="Übetipps" style="font-size:14px;">💡</button>
+              <button class="btn btn-icon" onClick=${() => setShowTips(true)} title="Übetipps" aria-label="Übetipps anzeigen" style="font-size:14px;">💡</button>
 
               <button class="btn btn-icon" onClick=${() => setShowFeedback(true)} title="Feedback" aria-label="Feedback senden" style="font-size:14px;">💬</button>
 
               <button class="btn btn-icon" onClick=${() => { headerFileRef.current.click(); }}
-                      title="MIDI laden" style="font-size:14px;">📁</button>
+                      title="MIDI laden" aria-label="MIDI-Datei laden" style="font-size:14px;">📁</button>
               <input ref=${headerFileRef} type="file" accept=".mid,.midi" style="display:none"
                      onChange=${(e) => { if (e.target.files[0]) loadFile(e.target.files[0]); }} />
 
@@ -1905,13 +1905,13 @@
             <div class="calibration-bar calibrating-active">
               <div class="cal-btn-group">
                 <span style="margin-right:4px">Größe:</span>
-                <button class="cal-btn-big" onClick=${() => adjustKeyWidth(-5)}>−</button>
-                <button class="cal-btn-big" onClick=${() => adjustKeyWidth(5)}>+</button>
+                <button class="cal-btn-big" onClick=${() => adjustKeyWidth(-5)} aria-label="Tasten kleiner">−</button>
+                <button class="cal-btn-big" onClick=${() => adjustKeyWidth(5)} aria-label="Tasten größer">+</button>
               </div>
               <div class="cal-btn-group">
                 <span style="margin-right:4px">Position:</span>
-                <button class="cal-btn-big" onClick=${() => adjustOffset(-20)}>←</button>
-                <button class="cal-btn-big" onClick=${() => adjustOffset(20)}>→</button>
+                <button class="cal-btn-big" onClick=${() => adjustOffset(-20)} aria-label="Tastatur nach links">←</button>
+                <button class="cal-btn-big" onClick=${() => adjustOffset(20)} aria-label="Tastatur nach rechts">→</button>
               </div>
               <span style="font-weight:600;min-width:45px;text-align:center">${Math.round(whiteKeyWidth / 36 * 100)}%</span>
               <button onClick=${() => {
