@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KRS Piano">
+  <title>KRS Piano Trainer</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    /* === CSS VARIABLES === */
+    :root {
+      --bg-primary: #F4F6FA;
+      --bg-canvas: #EAECF2;
+      --bg-white: #FFFFFF;
+      --text-primary: #1A1D26;
+      --text-secondary: #5A5F72;
+      --text-muted: #9CA0AE;
+      --accent: #3B7DD8;
+      --accent-light: #E8F0FD;
+      --accent-hover: #2D6BC4;
+      --green: #34C759;
+      --green-light: #E5F9EC;
+      --orange: #FF9500;
+      --red: #FF3B30;
+      --border: #E2E4EA;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --radius: 10px;
+      --radius-sm: 6px;
+      --keyboard-h: 130px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      -webkit-user-select: none; user-select: none;
+      touch-action: manipulation;
+    }
+    /* When calibrating: block browser gestures except on calibration buttons */
+    html.calibrating, html.calibrating body {
+      touch-action: none !important;
+    }
+    html.calibrating .calibration-bar {
+      touch-action: manipulation !important;
+    }
+    html.calibrating .calibration-bar button {
+      touch-action: manipulation !important;
+    }
+    #app { width: 100%; height: 100%; }
+
+    /* === HEADER === */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 12px; height: 48px;
+      background: var(--bg-white); border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm); position: relative; z-index: 10;
+    }
+    .header-left { display: flex; align-items: center; gap: 8px; }
+    .logo-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 10px; letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.3); flex-shrink: 0;
+    }
+    .app-title { font-size: 15px; font-weight: 700; }
+    .app-subtitle { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+
+    .header-center { display: flex; align-items: center; gap: 10px; }
+    .song-name {
+      font-size: 13px; font-weight: 600;
+      background: var(--bg-primary); padding: 5px 12px; border-radius: 16px;
+      border: 1px solid var(--border); max-width: 40%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 6px; }
+
+    /* === BUTTONS === */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: var(--bg-white); color: var(--text-primary);
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.95); background: var(--bg-primary); }
+    .btn-icon { width: 44px; height: 44px; padding: 0; border-radius: 8px; font-size: 16px; }
+    .btn-play {
+      background: var(--green); color: white; border-color: var(--green);
+      width: 48px; height: 48px; border-radius: 50%; font-size: 18px;
+      box-shadow: 0 3px 10px rgba(52,199,89,0.3);
+    }
+    .btn-play:active { transform: scale(0.92); }
+    .btn-play.playing { background: var(--orange); border-color: var(--orange); box-shadow: 0 3px 10px rgba(255,149,0,0.3); }
+    .btn-play.playing:active { background: #E68600; }
+
+    /* === TEMPO === */
+    .tempo-control {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg-primary); border-radius: 16px; padding: 3px 8px;
+      border: 1px solid var(--border);
+    }
+    .tempo-label { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .tempo-value { font-size: 13px; font-weight: 800; color: #1E40AF; min-width: 32px; text-align: center; }
+    .tempo-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: var(--bg-white); color: var(--text-secondary);
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-sm); -webkit-tap-highlight-color: transparent;
+    }
+    .tempo-btn:active { background: var(--accent-light); color: var(--accent); }
+
+    /* === TOGGLE === */
+    .toggle-group {
+      display: flex; align-items: center; gap: 2px;
+      background: var(--bg-primary); border-radius: 6px; padding: 2px;
+      border: 1px solid var(--border);
+    }
+    .toggle-option {
+      padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); cursor: pointer; border: none; background: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle-option.active { background: var(--bg-white); color: var(--accent); box-shadow: var(--shadow-sm); }
+
+    /* === TRACK SELECTOR === */
+    .track-selector {
+      display: flex; align-items: center; gap: 2px;
+      background: var(--bg-primary); border-radius: 6px; padding: 2px;
+      border: 1px solid var(--border);
+    }
+    .track-option {
+      padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); cursor: pointer; border: none; background: none;
+      -webkit-tap-highlight-color: transparent; white-space: nowrap;
+    }
+    .track-option.active { background: var(--bg-white); color: var(--accent); box-shadow: var(--shadow-sm); }
+    .track-option.melody { border-left: 3px solid #EC4899; }
+    .track-option.accomp { border-left: 3px solid #8B5CF6; }
+    .track-option.all { border-left: 3px solid var(--accent); }
+
+    /* === CANVAS === */
+    .canvas-area { flex: 1; position: relative; overflow: hidden; background: var(--bg-canvas); touch-action: none; }
+
+    /* === KEYBOARD === */
+    .keyboard-container {
+      position: relative; height: var(--keyboard-h);
+      background: linear-gradient(180deg, #CDD1D9 0%, #E0E3EA 3px, var(--bg-white) 3px);
+      border-top: 1px solid #B8BCC6;
+      box-shadow: 0 -3px 12px rgba(0,0,0,0.06);
+      overflow: hidden; touch-action: none; /* Needed for calibration pinch/drag */
+    }
+    .keyboard-scroll { height: 100%; position: relative; overflow: hidden; }
+    .keyboard-keys {
+      display: flex; height: 100%; position: absolute; top: 0;
+    }
+    .white-key {
+      height: 100%; flex-shrink: 0;
+      background: linear-gradient(180deg, #F5F6F8 0%, #FFF 30%, #F0F1F4 100%);
+      border-left: 0.5px solid #D0D3DA; border-right: 0.5px solid #D0D3DA;
+      border-bottom: 3px solid #C0C4CC;
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding-bottom: 6px;
+    }
+    .white-key.active {
+      background: linear-gradient(180deg, #DCEAFF 0%, #C8DCFF 100%);
+      border-bottom-color: var(--accent);
+    }
+    .white-key-label {
+      font-size: 10px; font-weight: 700; color: var(--text-muted);
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .show-names .white-key-label { opacity: 1; }
+    .black-key {
+      height: 82px; flex-shrink: 0;
+      background: linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 65%, #3A3A3C 100%);
+      border-radius: 0 0 3px 3px;
+      position: absolute; top: 0; z-index: 2;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.35), inset 0 -2px 3px rgba(0,0,0,0.4);
+    }
+    .black-key.active {
+      background: linear-gradient(180deg, #1A3A6B 0%, #2D5A9E 100%);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 2px rgba(0,0,0,0.3);
+    }
+
+    /* === PROGRESS === */
+    .progress-wrap { height: 3px; background: var(--border); }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 0 2px 2px 0; transition: width 0.15s linear;
+    }
+
+    /* === CALIBRATION === */
+    .calibration-bar {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 5px 12px; min-height: 36px;
+      background: var(--accent-light); border-bottom: 1px solid #C4D9F5;
+      font-size: 11px; color: var(--accent); font-weight: 500;
+      flex-wrap: wrap; flex-shrink: 0;
+    }
+    .calibration-bar.calibrating-active {
+      background: #E8F0FE; padding: 8px 12px; min-height: 44px;
+      gap: 10px; z-index: 100;
+    }
+    .calibration-bar button {
+      background: var(--accent); color: white; border: none; border-radius: 4px;
+      padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+      min-height: 28px; min-width: 28px;
+    }
+    .calibration-bar .cal-btn-done {
+      background: #1a8754; font-size: 13px; padding: 6px 16px;
+      min-height: 34px; min-width: 80px;
+    }
+    .calibration-bar .cal-btn-group {
+      display: flex; gap: 3px; align-items: center;
+    }
+    .calibration-bar .cal-btn-big {
+      font-size: 18px; padding: 6px 14px; min-width: 40px; min-height: 34px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* === FEEDBACK MODAL === */
+    .feedback-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: flex;
+      align-items: center; justify-content: center; z-index: 10000;
+    }
+    .feedback-modal {
+      background: white; border-radius: var(--radius); padding: 20px;
+      max-width: 420px; width: 90%; max-height: 85vh; overflow-y: auto;
+      box-shadow: var(--shadow-md);
+    }
+
+    /* === TIPS MODAL === */
+    .tips-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: flex;
+      align-items: center; justify-content: center; z-index: 10000;
+    }
+    .tips-modal {
+      background: white; border-radius: var(--radius); padding: 20px;
+      max-width: 450px; width: 90%; max-height: 85vh; overflow-y: auto;
+      box-shadow: var(--shadow-md);
+    }
+    .tips-modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+    .tips-list { display: flex; flex-direction: column; gap: 12px; }
+    .tips-item {
+      background: var(--bg-primary); border-left: 4px solid var(--accent);
+      padding: 12px; border-radius: var(--radius-sm);
+      font-size: 13px; line-height: 1.5; color: var(--text-primary);
+    }
+
+    /* === LOOP BUTTONS === */
+    .loop-marker-group {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg-primary); border-radius: 6px; padding: 2px;
+      border: 1px solid var(--border);
+    }
+    .loop-btn {
+      width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--border);
+      background: var(--bg-white); color: var(--text-primary);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; transition: all 0.12s ease;
+    }
+    .loop-btn:active { background: var(--accent-light); }
+    .loop-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .loop-toggle-btn {
+      padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); cursor: pointer; border: none; background: none;
+      -webkit-tap-highlight-color: transparent; transition: all 0.12s;
+    }
+    .loop-toggle-btn.active { background: var(--bg-white); color: var(--accent); box-shadow: var(--shadow-sm); }
+
+    /* === A-B LOOP PROGRESS MARKERS === */
+    .progress-wrap { position: relative; }
+    .loop-marker {
+      position: absolute; top: 0; bottom: 0; width: 3px;
+      background: var(--accent); z-index: 5;
+    }
+    .loop-marker.a { background: #3B82F6; }
+    .loop-marker.b { background: #8B5CF6; }
+
+    /* === LAYOUT === */
+    .app-layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+    /* === WELCOME === */
+    .welcome-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .welcome-card {
+      background: var(--bg-white); border-radius: 20px; padding: 28px 24px;
+      max-width: 380px; width: 88%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .welcome-logo {
+      width: 60px; height: 60px; border-radius: 16px;
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 24px;
+      margin-bottom: 14px; box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+    }
+    .welcome-title { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+    .welcome-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+    .welcome-features { display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; }
+    .welcome-feature {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      font-size: 10px; color: var(--text-secondary); font-weight: 500;
+    }
+    .welcome-feature-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--bg-primary); display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .welcome-btn {
+      width: 100%; padding: 13px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      color: white; font-size: 15px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+    }
+    .welcome-btn:active { transform: scale(0.98); }
+    .welcome-file-input { display: none; }
+    .welcome-or { font-size: 12px; color: var(--text-muted); margin: 10px 0; }
+    .welcome-upload {
+      width: 100%; padding: 12px; border-radius: 12px;
+      border: 2px dashed var(--border); background: var(--bg-primary);
+      color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer;
+    }
+    .welcome-upload:active { border-color: var(--accent); background: var(--accent-light); }
+    .welcome-demo-link {
+      display: inline-block; margin-top: 12px; font-size: 12px;
+      color: var(--accent); cursor: pointer; text-decoration: underline;
+    }
+
+    /* === SONG LIBRARY === */
+    .library-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px; margin-top: 12px; max-height: 180px; overflow-y: auto;
+      padding: 4px; touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+    .library-card {
+      background: var(--bg-primary); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; cursor: pointer;
+      text-align: left; transition: all 0.12s;
+    }
+    .library-card:active { transform: scale(0.97); background: var(--accent-light); border-color: var(--accent); }
+    .library-card-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .library-card-artist { font-size: 10px; color: var(--text-muted); }
+    .library-card-level { font-size: 9px; color: var(--accent); font-weight: 600; margin-top: 4px; }
+
+    /* === READY SCREEN (QR flow) === */
+    .ready-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .ready-card {
+      background: var(--bg-white); border-radius: 20px; padding: 32px 28px;
+      max-width: 360px; width: 88%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .ready-song-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .ready-track-info { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+    .ready-track-buttons {
+      display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .ready-track-btn {
+      padding: 10px 16px; border-radius: 10px; border: 2px solid var(--border);
+      background: var(--bg-primary); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.12s; flex: 1; min-width: 100px;
+    }
+    .ready-track-btn:active { transform: scale(0.97); }
+    .ready-track-btn.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+    .ready-go-btn {
+      width: 100%; padding: 14px; border-radius: 14px; border: none;
+      background: linear-gradient(135deg, #34C759, #30B350);
+      color: white; font-size: 17px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(52,199,89,0.3); margin-top: 8px;
+    }
+    .ready-go-btn:active { transform: scale(0.97); }
+
+    /* === LOADING === */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(255,255,255,0.9); backdrop-filter: blur(4px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* === ERROR TOAST === */
+    .toast {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 300;
+      background: var(--red); color: white; padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 500; box-shadow: 0 4px 20px rgba(255,59,48,0.3);
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
+
+    /* landscape lock hint */
+    @media (orientation: portrait) {
+      .rotate-hint {
+        position: fixed; inset: 0; z-index: 500;
+        background: var(--bg-white);
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+        font-size: 16px; color: var(--text-secondary); font-weight: 500;
+      }
+      .rotate-hint-icon { font-size: 48px; animation: rotateHint 2s ease infinite; }
+      @keyframes rotateHint { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
+    }
+    @media (orientation: landscape) {
+      .rotate-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { h, render } from 'https://esm.sh/preact@10.19.3';
+    import { useState, useEffect, useRef, useCallback, useMemo } from 'https://esm.sh/preact@10.19.3/hooks';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import { Midi } from 'https://esm.sh/@tonejs/midi@2.0.28';
+    const html = htm.bind(h);
+
+    // =============================================
+    // POLYFILL: canvas.roundRect (Safari compat)
+    // =============================================
+    if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+        const r = typeof radii === 'number' ? radii : (Array.isArray(radii) ? radii[0] : 0);
+        const rr = Math.min(r, w / 2, h / 2);
+        this.beginPath();
+        this.moveTo(x + rr, y);
+        this.arcTo(x + w, y, x + w, y + h, rr);
+        this.arcTo(x + w, y + h, x, y + h, rr);
+        this.arcTo(x, y + h, x, y, rr);
+        this.arcTo(x, y, x + w, y, rr);
+        this.closePath();
+        return this;
+      };
+    }
+
+    // =============================================
+    // CONSTANTS
+    // =============================================
+    const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const WHITE_NOTE_INDICES = [0,2,4,5,7,9,11];
+    const getNoteName = (midi) => NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1);
+    const getNoteNameShort = (midi) => NOTE_NAMES[midi % 12];
+    const isBlackKey = (midi) => [1,3,6,8,10].includes(midi % 12);
+
+    const NOTE_COLORS = {
+      0:'#3B82F6', 1:'#2563EB', 2:'#8B5CF6', 3:'#7C3AED',
+      4:'#EC4899', 5:'#F97316', 6:'#EA580C', 7:'#EAB308',
+      8:'#CA8A04', 9:'#22C55E', 10:'#16A34A', 11:'#06B6D4'
+    };
+
+    // Background track color (muted purple)
+    const BG_NOTE_COLOR = 'rgba(139,92,246,0.35)';
+
+    // =============================================
+    // SONG LIBRARY (slug-based)
+    // =============================================
+    const SONG_LIBRARY = {
+      'ode-an-die-freude': {
+        name: 'Ode an die Freude',
+        artist: 'Beethoven',
+        level: 1,
+        type: 'demo'
+      },
+      'alle-meine-entchen': {
+        name: 'Alle meine Entchen',
+        artist: 'Volkslied',
+        level: 1,
+        url: 'songs/alle-meine-entchen.mid'
+      },
+      'bruder-jakob': {
+        name: 'Bruder Jakob',
+        artist: 'Volkslied',
+        level: 1,
+        url: 'songs/bruder-jakob.mid'
+      },
+      'axel-f': {
+        name: 'Axel F',
+        artist: 'Harold Faltermeyer',
+        level: 2,
+        url: 'songs/axel-f.mid'
+      },
+      'amelie-comptine': {
+        name: 'Comptine d\'un autre été',
+        artist: 'Yann Tiersen (Amélie)',
+        level: 2,
+        url: 'songs/amelie-comptine.mid'
+      },
+      'vivaldi-fruehling': {
+        name: 'Der Frühling',
+        artist: 'Vivaldi',
+        level: 2,
+        url: 'songs/vivaldi-fruehling.mid'
+      }
+    };
+
+    // Demo: Ode an die Freude (hardcoded)
+    const DEMO_NOTES = [
+      {note:64,start:0,duration:0.45,trackId:0},{note:64,start:0.5,duration:0.45,trackId:0},
+      {note:65,start:1,duration:0.45,trackId:0},{note:67,start:1.5,duration:0.45,trackId:0},
+      {note:67,start:2,duration:0.45,trackId:0},{note:65,start:2.5,duration:0.45,trackId:0},
+      {note:64,start:3,duration:0.45,trackId:0},{note:62,start:3.5,duration:0.45,trackId:0},
+      {note:60,start:4,duration:0.45,trackId:0},{note:60,start:4.5,duration:0.45,trackId:0},
+      {note:62,start:5,duration:0.45,trackId:0},{note:64,start:5.5,duration:0.45,trackId:0},
+      {note:64,start:6,duration:0.7,trackId:0},{note:62,start:6.75,duration:0.2,trackId:0},
+      {note:62,start:7,duration:0.9,trackId:0},
+      {note:64,start:8,duration:0.45,trackId:0},{note:64,start:8.5,duration:0.45,trackId:0},
+      {note:65,start:9,duration:0.45,trackId:0},{note:67,start:9.5,duration:0.45,trackId:0},
+      {note:67,start:10,duration:0.45,trackId:0},{note:65,start:10.5,duration:0.45,trackId:0},
+      {note:64,start:11,duration:0.45,trackId:0},{note:62,start:11.5,duration:0.45,trackId:0},
+      {note:60,start:12,duration:0.45,trackId:0},{note:60,start:12.5,duration:0.45,trackId:0},
+      {note:62,start:13,duration:0.45,trackId:0},{note:64,start:13.5,duration:0.45,trackId:0},
+      {note:62,start:14,duration:0.7,trackId:0},{note:60,start:14.75,duration:0.2,trackId:0},
+      {note:60,start:15,duration:0.9,trackId:0},
+      {note:62,start:16,duration:0.45,trackId:0},{note:62,start:16.5,duration:0.45,trackId:0},
+      {note:64,start:17,duration:0.45,trackId:0},{note:60,start:17.5,duration:0.45,trackId:0},
+      {note:62,start:18,duration:0.45,trackId:0},{note:64,start:18.25,duration:0.2,trackId:0},
+      {note:65,start:18.5,duration:0.45,trackId:0},{note:64,start:19,duration:0.45,trackId:0},
+      {note:60,start:19.5,duration:0.45,trackId:0},
+      {note:62,start:20,duration:0.45,trackId:0},{note:64,start:20.25,duration:0.2,trackId:0},
+      {note:65,start:20.5,duration:0.45,trackId:0},{note:64,start:21,duration:0.45,trackId:0},
+      {note:62,start:21.5,duration:0.45,trackId:0},{note:60,start:22,duration:0.45,trackId:0},
+      {note:62,start:22.5,duration:0.45,trackId:0},{note:55,start:23,duration:0.9,trackId:0},
+      {note:64,start:24,duration:0.45,trackId:0},{note:64,start:24.5,duration:0.45,trackId:0},
+      {note:65,start:25,duration:0.45,trackId:0},{note:67,start:25.5,duration:0.45,trackId:0},
+      {note:67,start:26,duration:0.45,trackId:0},{note:65,start:26.5,duration:0.45,trackId:0},
+      {note:64,start:27,duration:0.45,trackId:0},{note:62,start:27.5,duration:0.45,trackId:0},
+      {note:60,start:28,duration:0.45,trackId:0},{note:60,start:28.5,duration:0.45,trackId:0},
+      {note:62,start:29,duration:0.45,trackId:0},{note:64,start:29.5,duration:0.45,trackId:0},
+      {note:62,start:30,duration:0.7,trackId:0},{note:60,start:30.75,duration:0.2,trackId:0},
+      {note:60,start:31,duration:0.9,trackId:0},
+    ];
+
+    // =============================================
+    // MIDI PARSER WITH TRACK SEPARATION
+    // =============================================
+
+    /** Analyze a single track's characteristics */
+    function analyzeTrack(notes) {
+      if (notes.length === 0) return { avgPitch: 60, pitchRange: 0, noteCount: 0, density: 0 };
+      let sumPitch = 0, minPitch = 127, maxPitch = 0;
+      for (const n of notes) {
+        sumPitch += n.note;
+        if (n.note < minPitch) minPitch = n.note;
+        if (n.note > maxPitch) maxPitch = n.note;
+      }
+      const avgPitch = sumPitch / notes.length;
+      const pitchRange = maxPitch - minPitch;
+      const duration = notes.length > 1 ? notes[notes.length - 1].start - notes[0].start : 1;
+      const density = notes.length / Math.max(duration, 1);
+      return { avgPitch, pitchRange, noteCount: notes.length, density };
+    }
+
+    /** Auto-detect if a track is melody or accompaniment */
+    function detectTrackRole(metadata) {
+      // Higher pitch + lower density = likely melody
+      const melodyScore =
+        (metadata.avgPitch > 60 ? 30 : 0) +
+        (metadata.density < 4 ? 25 : 0) +
+        (metadata.pitchRange > 12 ? 20 : 0) +
+        (metadata.noteCount < 300 ? 25 : 0);
+      const accompScore =
+        (metadata.avgPitch <= 60 ? 30 : 0) +
+        (metadata.density >= 4 ? 25 : 0) +
+        (metadata.pitchRange <= 12 ? 20 : 0) +
+        (metadata.noteCount >= 300 ? 25 : 0);
+      return melodyScore >= accompScore ? 'melody' : 'accompaniment';
+    }
+
+    /** Extract tracks with metadata from MIDI */
+    function extractTracks(midi) {
+      const tracks = [];
+      for (let i = 0; i < midi.tracks.length; i++) {
+        const midiTrack = midi.tracks[i];
+        const notes = [];
+        for (const note of midiTrack.notes) {
+          if (note.midi >= 0 && note.midi <= 127 && note.duration > 0) {
+            notes.push({
+              note: note.midi,
+              start: note.time,
+              duration: note.duration,
+              velocity: note.velocity || 0.7,
+              trackId: i
+            });
+          }
+        }
+        if (notes.length === 0) continue; // skip empty tracks (metadata-only)
+        notes.sort((a, b) => a.start - b.start);
+        const metadata = analyzeTrack(notes);
+        tracks.push({
+          id: i,
+          name: midiTrack.name || ('Track ' + (tracks.length + 1)),
+          channel: midiTrack.channel,
+          notes,
+          metadata,
+          role: 'unknown' // assigned below
+        });
+      }
+
+      // Auto-assign roles
+      if (tracks.length === 1) {
+        tracks[0].role = 'both';
+      } else if (tracks.length === 2) {
+        // Sort by avgPitch: higher = melody
+        const sorted = [...tracks].sort((a, b) => b.metadata.avgPitch - a.metadata.avgPitch);
+        sorted[0].role = 'melody';
+        sorted[1].role = 'accompaniment';
+      } else {
+        // For >2 tracks: use heuristic
+        for (const t of tracks) {
+          t.role = detectTrackRole(t.metadata);
+        }
+      }
+
+      const allNotes = tracks.flatMap(t => t.notes).sort((a, b) => a.start - b.start);
+      return { tracks, allNotes };
+    }
+
+    /** Legacy: extract all notes flat (for single track compat) */
+    function extractNotesFlat(midi) {
+      const result = extractTracks(midi);
+      return result.allNotes;
+    }
+
+    const MIDI_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
+    async function parseMidiFile(file) {
+      if (file.size > MIDI_MAX_SIZE) throw new Error('MIDI-Datei zu groß (max 10 MB).');
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const midi = new Midi(arrayBuffer);
+        const { tracks, allNotes } = extractTracks(midi);
+        return { tracks, allNotes, name: midi.name || file.name.replace(/\.midi?$/i, '') };
+      } catch (e) {
+        throw new Error('MIDI-Datei ist beschaedigt oder ungueltig: ' + e.message);
+      }
+    }
+
+    async function parseMidiFromUrl(url) {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('MIDI-Datei konnte nicht geladen werden (' + resp.status + ')');
+      const contentLength = parseInt(resp.headers.get('content-length') || '0');
+      if (contentLength > MIDI_MAX_SIZE) throw new Error('MIDI-Datei zu groß (max 10 MB).');
+      try {
+        const arrayBuffer = await resp.arrayBuffer();
+        if (arrayBuffer.byteLength > MIDI_MAX_SIZE) throw new Error('MIDI-Datei zu groß (max 10 MB).');
+        const midi = new Midi(arrayBuffer);
+        const { tracks, allNotes } = extractTracks(midi);
+        const urlName = url.split('/').pop().replace(/\.midi?$/i, '').replace(/[_-]/g, ' ');
+        return { tracks, allNotes, name: midi.name || decodeURIComponent(urlName) };
+      } catch (e) {
+        throw new Error('MIDI-Datei ist beschaedigt oder ungueltig: ' + e.message);
+      }
+    }
+
+    // =============================================
+    // SOUND ENGINE (Web Audio API + synth)
+    // =============================================
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.activeNotes = new Map();
+        this.masterGain = null;
+        this.bgGain = null;
+        this.initialized = false;
+      }
+
+      init() {
+        if (this.initialized) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Compressor
+        this.compressor = this.ctx.createDynamicsCompressor();
+        this.compressor.threshold.value = -20;
+        this.compressor.knee.value = 10;
+        this.compressor.ratio.value = 4;
+        this.compressor.connect(this.ctx.destination);
+
+        // Main gain (for visual/practice track)
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.35;
+        this.masterGain.connect(this.compressor);
+
+        // Background gain (for auto-played accompaniment, quieter)
+        this.bgGain = this.ctx.createGain();
+        this.bgGain.gain.value = 0.18;
+        this.bgGain.connect(this.compressor);
+
+        this.initialized = true;
+      }
+
+      resume() {
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      }
+
+      midiToFreq(midi) {
+        return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      noteOn(midi, velocity = 0.7, isBackground = false) {
+        if (!this.initialized) this.init();
+        this.resume();
+
+        const key = isBackground ? 'bg_' + midi : midi;
+        if (this.activeNotes.has(key)) this.noteOff(midi, isBackground);
+
+        const freq = this.midiToFreq(midi);
+        const now = this.ctx.currentTime;
+        const gainNode = isBackground ? this.bgGain : this.masterGain;
+
+        const noteGain = this.ctx.createGain();
+        noteGain.gain.setValueAtTime(0, now);
+        noteGain.gain.linearRampToValueAtTime(velocity * 0.5, now + 0.01);
+        noteGain.gain.exponentialRampToValueAtTime(velocity * 0.3, now + 0.1);
+        noteGain.gain.exponentialRampToValueAtTime(velocity * 0.08, now + 0.8);
+        noteGain.connect(gainNode);
+
+        // Background uses softer sine wave, foreground uses triangle
+        const osc1 = this.ctx.createOscillator();
+        osc1.type = isBackground ? 'sine' : 'triangle';
+        osc1.frequency.value = freq;
+        osc1.connect(noteGain);
+        osc1.start(now);
+
+        const osc2 = this.ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.value = freq * 2;
+        const harm2Gain = this.ctx.createGain();
+        harm2Gain.gain.value = isBackground ? 0.05 : 0.15;
+        osc2.connect(harm2Gain);
+        harm2Gain.connect(noteGain);
+        osc2.start(now);
+
+        this.activeNotes.set(key, { osc1, osc2, noteGain, harm2Gain });
+      }
+
+      noteOff(midi, isBackground = false) {
+        const key = isBackground ? 'bg_' + midi : midi;
+        const note = this.activeNotes.get(key);
+        if (!note) return;
+        const now = this.ctx.currentTime;
+        note.noteGain.gain.cancelScheduledValues(now);
+        note.noteGain.gain.setValueAtTime(note.noteGain.gain.value, now);
+        note.noteGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        try { note.osc1.stop(now + 0.2); note.osc2.stop(now + 0.2); } catch(e) {}
+        this.activeNotes.delete(key);
+      }
+
+      allNotesOff() {
+        for (const [key] of this.activeNotes) {
+          const note = this.activeNotes.get(key);
+          if (!note) continue;
+          const now = this.ctx.currentTime;
+          note.noteGain.gain.cancelScheduledValues(now);
+          note.noteGain.gain.setValueAtTime(note.noteGain.gain.value, now);
+          note.noteGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          try { note.osc1.stop(now + 0.15); note.osc2.stop(now + 0.15); } catch(e) {}
+        }
+        this.activeNotes.clear();
+      }
+    }
+
+    const soundEngine = new SoundEngine();
+
+    // =============================================
+    // NOTE RANGE HELPER
+    // =============================================
+    function computeNoteRange(notes) {
+      if (!notes || notes.length === 0) return { start: 48, end: 72 };
+      let minNote = 127, maxNote = 0;
+      for (const n of notes) {
+        if (n.note < minNote) minNote = n.note;
+        if (n.note > maxNote) maxNote = n.note;
+      }
+      while (isBlackKey(minNote)) minNote--;
+      while (isBlackKey(maxNote)) maxNote++;
+      minNote = Math.max(21, minNote - 3);
+      maxNote = Math.min(108, maxNote + 3);
+      while (isBlackKey(minNote)) minNote--;
+      while (isBlackKey(maxNote)) maxNote++;
+      return { start: minNote, end: maxNote };
+    }
+
+    // =============================================
+    // KEYBOARD COMPONENT
+    // =============================================
+    function Keyboard({ startNote, endNote, activeNotes, showNames, whiteKeyWidth, offsetX }) {
+      const { whiteKeys, blackKeys } = useMemo(() => {
+        const wKeys = [];
+        const bKeys = [];
+        let wIdx = 0;
+        for (let midi = startNote; midi <= endNote; midi++) {
+          if (!isBlackKey(midi)) {
+            wKeys.push({ midi, x: wIdx * whiteKeyWidth });
+            wIdx++;
+          } else {
+            const bx = wIdx * whiteKeyWidth - (whiteKeyWidth * 0.3);
+            bKeys.push({ midi, x: bx });
+          }
+        }
+        return { whiteKeys: wKeys, blackKeys: bKeys };
+      }, [startNote, endNote, whiteKeyWidth]);
+
+      const totalWidth = whiteKeys.length * whiteKeyWidth;
+      const blackKeyW = whiteKeyWidth * 0.6;
+
+      return html`
+        <div class="keyboard-container">
+          <div class="keyboard-scroll">
+            <div class="keyboard-keys ${showNames ? 'show-names' : ''}"
+                 style="width:${totalWidth}px; left:${offsetX}px;">
+              ${whiteKeys.map(k => html`
+                <div key=${k.midi}
+                     class="white-key ${activeNotes.has(k.midi) ? 'active' : ''}"
+                     style="width:${whiteKeyWidth}px; left:${k.x}px; position:absolute; top:0; height:100%;">
+                  <span class="white-key-label">${getNoteName(k.midi)}</span>
+                </div>
+              `)}
+              ${blackKeys.map(k => html`
+                <div key=${k.midi}
+                     class="black-key ${activeNotes.has(k.midi) ? 'active' : ''}"
+                     style="width:${blackKeyW}px; left:${k.x}px;" />
+              `)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =============================================
+    // CANVAS RENDERER (with background track + flash mode)
+    // =============================================
+    function NoteCanvas({ visualNotes, bgNotes, currentTime, startNote, endNote, pxPerSec, showNames, whiteKeyWidth, offsetX, canvasRef, displayMode }) {
+      const whiteKeyCount = useMemo(() => {
+        let c = 0;
+        for (let i = startNote; i <= endNote; i++) { if (!isBlackKey(i)) c++; }
+        return c;
+      }, [startNote, endNote]);
+
+      const getXForNote = useCallback((midi) => {
+        let whites = 0;
+        for (let i = startNote; i < midi; i++) { if (!isBlackKey(i)) whites++; }
+        if (isBlackKey(midi)) return whites * whiteKeyWidth - whiteKeyWidth * 0.3;
+        return whites * whiteKeyWidth;
+      }, [startNote, whiteKeyWidth]);
+
+      const getNoteW = useCallback((midi) => {
+        return isBlackKey(midi) ? whiteKeyWidth * 0.6 : whiteKeyWidth;
+      }, [whiteKeyWidth]);
+
+      const canvasSizeRef = useRef({ w: 0, h: 0 });
+      const gradientCacheRef = useRef({ w: 0, h: 0, flashHitGrad: null, fallingHitGrad: null });
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 2;
+        const W = rect.width;
+        const H = rect.height;
+
+        if (canvasSizeRef.current.w !== W || canvasSizeRef.current.h !== H) {
+          canvas.width = W * dpr;
+          canvas.height = H * dpr;
+          canvasSizeRef.current = { w: W, h: H };
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const ox = offsetX;
+
+        // Gradient cache — recreate only when canvas size changes
+        const gc = gradientCacheRef.current;
+        if (gc.w !== W || gc.h !== H) {
+          gc.flashHitGrad = ctx.createLinearGradient(0, H - 12, 0, H);
+          gc.flashHitGrad.addColorStop(0, 'rgba(59,130,246,0.08)');
+          gc.flashHitGrad.addColorStop(1, 'rgba(59,130,246,0.18)');
+          gc.fallingHitGrad = ctx.createLinearGradient(0, H - 8, 0, H);
+          gc.fallingHitGrad.addColorStop(0, 'rgba(59,130,246,0)');
+          gc.fallingHitGrad.addColorStop(1, 'rgba(59,130,246,0.12)');
+          gc.w = W; gc.h = H;
+        }
+
+        // Background
+        ctx.fillStyle = '#EAECF2';
+        ctx.fillRect(0, 0, W, H);
+
+        // Vertical guides
+        ctx.strokeStyle = '#D8DBE2';
+        ctx.lineWidth = 0.5;
+        let wk = 0;
+        for (let i = startNote; i <= endNote; i++) {
+          if (!isBlackKey(i)) {
+            const x = ox + wk * whiteKeyWidth;
+            if (x >= -1 && x <= W + 1) {
+              ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+            }
+            wk++;
+          }
+        }
+
+        // Beat lines
+        const secVisible = H / pxPerSec;
+        const tStart = Math.floor(currentTime) - 1;
+        const tEnd = Math.ceil(currentTime + secVisible) + 1;
+        for (let b = tStart; b <= tEnd; b++) {
+          const y = H - (b - currentTime) * pxPerSec;
+          if (y < -2 || y > H + 2) continue;
+          const isMeasure = b % 4 === 0;
+          ctx.strokeStyle = isMeasure ? '#C0C4CE' : '#D5D8E0';
+          ctx.lineWidth = isMeasure ? 1 : 0.5;
+          ctx.setLineDash(isMeasure ? [] : [3, 3]);
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // --- Flash Mode: skip falling notes, show only hit zone and next note indicator ---
+        if (displayMode === 'flash') {
+          // Dark background for flash mode
+          ctx.fillStyle = 'rgba(234, 236, 242, 0.95)';
+          ctx.fillRect(0, 0, W, H);
+
+          // Find next upcoming note
+          const nextNote = visualNotes.find(n => n.start > currentTime);
+          if (nextNote) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.font = 'bold 48px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(getNoteNameShort(nextNote.note), W / 2, H / 2);
+          }
+
+          // Show only hit zone glow (cached gradient)
+          ctx.fillStyle = gc.flashHitGrad;
+          ctx.fillRect(0, H - 12, W, 12);
+
+          ctx.strokeStyle = 'rgba(59,130,246,0.3)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, H - 12);
+          ctx.lineTo(W, H - 12);
+          ctx.stroke();
+        } else {
+          // --- Falling notes mode: draw as normal ---
+
+          // --- Draw background track notes (muted, behind) ---
+          if (bgNotes && bgNotes.length > 0) {
+            for (const note of bgNotes) {
+              const nEnd = note.start + note.duration;
+              const yBot = H - (note.start - currentTime) * pxPerSec;
+              const yTop = H - (nEnd - currentTime) * pxPerSec;
+              if (yBot < -30 || yTop > H + 30) continue;
+
+              const nx = ox + getXForNote(note.note);
+              const nw = getNoteW(note.note);
+              const nh = Math.max(yBot - yTop, 4);
+              const pad = isBlackKey(note.note) ? 1.5 : 2;
+
+              ctx.beginPath();
+              ctx.roundRect(nx + pad, yTop, nw - pad * 2, nh, Math.min(4, nh / 2));
+              ctx.fillStyle = BG_NOTE_COLOR;
+              ctx.fill();
+            }
+          }
+
+          // --- Draw visual (practice) track notes ---
+          for (const note of visualNotes) {
+            const nEnd = note.start + note.duration;
+            const yBot = H - (note.start - currentTime) * pxPerSec;
+            const yTop = H - (nEnd - currentTime) * pxPerSec;
+            if (yBot < -30 || yTop > H + 30) continue;
+
+            const nx = ox + getXForNote(note.note);
+            const nw = getNoteW(note.note);
+            const nh = Math.max(yBot - yTop, 6);
+            const color = NOTE_COLORS[note.note % 12];
+            const isActive = yBot >= H - 4 && yTop <= H;
+
+            if (isActive) {
+              ctx.shadowColor = color;
+              ctx.shadowBlur = 16;
+            }
+
+            const r = Math.min(5, nh / 2);
+            const pad = isBlackKey(note.note) ? 1.5 : 2;
+            ctx.beginPath();
+            ctx.roundRect(nx + pad, yTop, nw - pad * 2, nh, r);
+
+            const grad = ctx.createLinearGradient(nx, yTop, nx, yTop + nh);
+            grad.addColorStop(0, color + (isActive ? 'FF' : 'DD'));
+            grad.addColorStop(1, color);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            if (nh > 12) {
+              ctx.beginPath();
+              ctx.roundRect(nx + pad + 2, yTop + 2, nw - pad * 2 - 4, Math.min(nh * 0.25, 10), [r, r, 0, 0]);
+              ctx.fillStyle = 'rgba(255,255,255,0.22)';
+              ctx.fill();
+            }
+
+            if (showNames && nh > 16) {
+              ctx.fillStyle = 'rgba(255,255,255,0.92)';
+              ctx.font = 'bold ' + Math.min(11, nw * 0.32) + 'px -apple-system, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(getNoteNameShort(note.note), nx + nw / 2, Math.max(yTop + nh / 2, yTop + 9));
+            }
+          }
+
+          // Bottom glow (cached gradient)
+          ctx.fillStyle = gc.fallingHitGrad;
+          ctx.fillRect(0, H - 8, W, 8);
+        }
+
+      }, [visualNotes, bgNotes, currentTime, startNote, endNote, pxPerSec, showNames, whiteKeyWidth, offsetX, whiteKeyCount, getXForNote, getNoteW, displayMode]);
+
+      return html`
+        <div class="canvas-area">
+          <canvas ref=${canvasRef} style="width:100%;height:100%;display:block;" />
+        </div>
+      `;
+    }
+
+    // =============================================
+    // WELCOME SCREEN (with Song Library)
+    // =============================================
+    function WelcomeScreen({ onDemo, onFile, onLibrarySong }) {
+      const fileRef = useRef(null);
+      const libraryEntries = Object.entries(SONG_LIBRARY);
+
+      return html`
+        <div class="welcome-overlay" onClick=${(e) => e.stopPropagation()}>
+          <div class="welcome-card">
+            <div class="welcome-logo">🎹</div>
+            <div class="welcome-title">KRS Piano Trainer</div>
+            <div class="welcome-sub">
+              Lerne Klavier mit fallenden Noten.<br/>
+              Stelle dein iPad hinter die Tastatur und spiel los!
+            </div>
+
+            ${libraryEntries.length > 0 && html`
+              <div style="margin-bottom:12px;">
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Song-Bibliothek</div>
+                <div class="library-grid">
+                  ${libraryEntries.map(([slug, song]) => html`
+                    <div class="library-card" key=${slug}
+                         onClick=${() => song.type === 'demo' ? onDemo() : onLibrarySong(slug, song)}>
+                      <div class="library-card-title">${song.name}</div>
+                      <div class="library-card-artist">${song.artist}</div>
+                      <div class="library-card-level">${'★'.repeat(song.level)}${'☆'.repeat(3 - song.level)}</div>
+                    </div>
+                  `)}
+                </div>
+              </div>
+            `}
+
+            <button class="welcome-upload" onClick=${() => fileRef.current.click()}>
+              📁 Eigene MIDI-Datei öffnen
+            </button>
+            <input ref=${fileRef} type="file" accept=".mid,.midi"
+                   class="welcome-file-input"
+                   onChange=${(e) => { if (e.target.files[0]) onFile(e.target.files[0]); }} />
+            <div class="welcome-or">oder</div>
+            <button class="welcome-btn" onClick=${onDemo}>
+              ▶ Demo starten (Ode an die Freude)
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // =============================================
+    // READY SCREEN (QR flow — skip welcome, show track choice)
+    // =============================================
+    function ReadyScreen({ songName, tracks, onStart }) {
+      const hasMultipleTracks = tracks.length > 1;
+      const [practiceMode, setPracticeMode] = useState(hasMultipleTracks ? 'melody' : 'all');
+
+      const melodyTrack = tracks.find(t => t.role === 'melody');
+      const accompTrack = tracks.find(t => t.role === 'accompaniment');
+
+      return html`
+        <div class="ready-overlay">
+          <div class="ready-card">
+            <div style="font-size:40px;margin-bottom:8px;">🎹</div>
+            <div class="ready-song-name">${songName}</div>
+
+            ${hasMultipleTracks ? html`
+              <div class="ready-track-info">
+                ${tracks.length} Tracks erkannt — was möchtest du üben?
+              </div>
+              <div class="ready-track-buttons">
+                ${melodyTrack && html`
+                  <button class="ready-track-btn ${practiceMode === 'melody' ? 'selected' : ''}"
+                          onClick=${() => setPracticeMode('melody')}>
+                    🎵 Rechte Hand<br/><span style="font-size:10px;color:var(--text-muted)">Melodie — iPad rechts neben Tastatur</span>
+                  </button>
+                `}
+                ${accompTrack && html`
+                  <button class="ready-track-btn ${practiceMode === 'accompaniment' ? 'selected' : ''}"
+                          onClick=${() => setPracticeMode('accompaniment')}>
+                    🎹 Linke Hand<br/><span style="font-size:10px;color:var(--text-muted)">Begleitung — iPad links neben Tastatur</span>
+                  </button>
+                `}
+                <button class="ready-track-btn ${practiceMode === 'all' ? 'selected' : ''}"
+                        onClick=${() => setPracticeMode('all')}>
+                  🎼 Beide Hände<br/><span style="font-size:10px;color:var(--text-muted)">Alles zusammen</span>
+                </button>
+              </div>
+            ` : html`
+              <div class="ready-track-info">Bereit zum Üben!</div>
+            `}
+
+            <button class="ready-go-btn" onClick=${() => onStart(practiceMode)}>
+              ▶ Los geht's!
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // =============================================
+    // MAIN APP
+    // =============================================
+    // =============================================
+    // FEEDBACK MODAL
+    // =============================================
+    const FEEDBACK_GAS_URL = 'https://script.google.com/macros/s/AKfycbx20lOsl1x_g1ugn-PZXNRxM-c6psmm9ZCqr3nBV9mxSEVuUqn09T-M_7clhMu56uReuw/exec';
+
+    // =============================================
+    // TIPS MODAL
+    // =============================================
+    function TipsModal({ isOpen, onClose }) {
+      const tips = [
+        { icon: '🐢', text: 'Fange langsam an — Reduziere das Tempo auf 50% und steigere dich schrittweise.' },
+        { icon: '🔁', text: 'Schwierige Stellen üben — Setze A-B Loop-Marker, um schwierige Passagen zu wiederholen.' },
+        { icon: '🎯', text: 'Positionen merken — Nutze den Flash-Modus (Level B), um ohne fallende Noten zu spielen.' },
+        { icon: '👀', text: 'Notennamen — Schalte Notennamen ein (ABC), um die Tasten schneller zu finden.' },
+        { icon: '📐', text: 'Tastatur kalibrieren — Passe die Größe an dein echtes Klavier an.' }
+      ];
+
+      if (!isOpen) return null;
+
+      return html`
+        <div class="tips-overlay" onClick=${(e) => e.target === e.currentTarget && onClose()}>
+          <div class="tips-modal">
+            <div class="tips-modal-title">💡 Übetipps</div>
+            <div class="tips-list">
+              ${tips.map((tip, i) => html`
+                <div key=${i} class="tips-item">
+                  <div style="margin-bottom:4px;font-size:14px">${tip.icon}</div>
+                  <div>${tip.text}</div>
+                </div>
+              `)}
+            </div>
+            <div style="margin-top:16px;display:flex;justify-content:flex-end">
+              <button onClick=${onClose} style="padding:8px 14px;border:1px solid var(--border);background:white;border-radius:var(--radius-sm);cursor:pointer;font-size:13px">Schließen</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function FeedbackModal({ isOpen, onClose }) {
+      const [name, setName] = useState('');
+      const [category, setCategory] = useState('Verbesserung');
+      const [rating, setRating] = useState(0);
+      const [message, setMessage] = useState('');
+      const [submitting, setSubmitting] = useState(false);
+      const [lastSubmit, setLastSubmit] = useState(0);
+
+      const categories = ['Fehler', 'Verbesserung', 'Lob', 'Frage', 'Sonstiges'];
+      
+      const handleSubmit = async () => {
+        if (!message.trim()) return;
+        const now = Date.now();
+        if (now - lastSubmit < 10000) return;
+        // Client-side rate-limiting: max 1 feedback per 60 seconds (persistent)
+        try {
+          const lastFeedback = localStorage.getItem('krs-piano-last-feedback');
+          if (lastFeedback && now - parseInt(lastFeedback) < 60000) {
+            alert('Bitte warte eine Minute zwischen Feedback-Einsendungen.');
+            return;
+          }
+        } catch(e) {}
+        
+        setSubmitting(true);
+        try {
+          if (FEEDBACK_GAS_URL) {
+            await fetch(FEEDBACK_GAS_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              body: JSON.stringify({
+                name: name || 'Anonym',
+                category,
+                rating: rating || 0,
+                message: message.substring(0, 2000),
+                page: window.location.pathname,
+                userAgent: navigator.userAgent.substring(0, 300)
+              })
+            });
+          }
+          setLastSubmit(Date.now());
+          try { localStorage.setItem('krs-piano-last-feedback', String(Date.now())); } catch(e) {}
+          setName(''); setCategory('Verbesserung'); setRating(0); setMessage('');
+          onClose();
+        } catch(e) {
+          console.error('Feedback error:', e);
+        } finally {
+          setSubmitting(false);
+        }
+      };
+      
+      if (!isOpen) return null;
+      
+      return html`
+        <div class="feedback-overlay" onClick=${(e) => e.target === e.currentTarget && onClose()}>
+          <div class="feedback-modal">
+            <div style="font-size:18px;font-weight:600;margin-bottom:16px;color:var(--text-primary)">Feedback geben</div>
+            
+            <div style="margin-bottom:12px">
+              <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:var(--text-secondary)">Name (optional)</label>
+              <input type="text" value=${name} onInput=${e => setName(e.target.value.substring(0,100))}
+                     placeholder="Dein Name oder Anonym"
+                     style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px" />
+            </div>
+            
+            <div style="margin-bottom:12px">
+              <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:var(--text-secondary)">Kategorie</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                ${categories.map(cat => html`
+                  <button key=${cat} type="button"
+                          style="padding:6px 10px;border:1px solid ${category === cat ? 'var(--accent)' : 'var(--border)'};background:${category === cat ? 'var(--accent)' : 'white'};color:${category === cat ? 'white' : 'var(--text-primary)'};border-radius:var(--radius-sm);font-size:12px;cursor:pointer"
+                          onClick=${() => setCategory(cat)}>${cat}</button>
+                `)}
+              </div>
+            </div>
+            
+            <div style="margin-bottom:12px">
+              <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:var(--text-secondary)">Bewertung</label>
+              <div style="display:flex;gap:6px">
+                ${[1,2,3,4,5].map(s => html`
+                  <span key=${s} style="font-size:24px;cursor:pointer;opacity:${s <= rating ? 1 : 0.3}"
+                        onClick=${() => setRating(s)}>⭐</span>
+                `)}
+              </div>
+            </div>
+            
+            <div style="margin-bottom:12px">
+              <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:var(--text-secondary)">Nachricht *</label>
+              <textarea value=${message} onInput=${e => setMessage(e.target.value.substring(0,2000))}
+                        placeholder="Was möchtest du uns mitteilen?"
+                        style="width:100%;min-height:80px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;resize:vertical" />
+              <div style="font-size:11px;color:var(--text-muted);text-align:right">${message.length}/2000</div>
+            </div>
+            
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+              <button onClick=${onClose} style="padding:8px 14px;border:1px solid var(--border);background:white;border-radius:var(--radius-sm);cursor:pointer;font-size:13px">Abbrechen</button>
+              <button onClick=${handleSubmit} disabled=${submitting || !message.trim()}
+                      style="padding:8px 14px;border:none;background:var(--accent);color:white;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;opacity:${submitting || !message.trim() ? 0.6 : 1}">
+                ${submitting ? 'Wird gesendet...' : 'Absenden'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function App() {
+      // === Synchronous URL parameter check (prevents Welcome flash) ===
+      const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+      const initialSongParam = urlParams.get('song');
+      const initialPracticeParam = urlParams.get('practice'); // melody|accompaniment|all
+
+      // Screen: welcome | loading | ready | playing
+      const [screen, setScreen] = useState(initialSongParam ? 'loading' : 'welcome');
+      const [loading, setLoading] = useState(!!initialSongParam);
+      const [error, setError] = useState(null);
+      const [songName, setSongName] = useState('');
+      const [allTracks, setAllTracks] = useState([]);
+      const [allNotes, setAllNotes] = useState([]);
+      const [practiceMode, setPracticeMode] = useState('all'); // melody|accompaniment|all
+      const [playing, setPlaying] = useState(false);
+      const [currentTime, setCurrentTime] = useState(-2.5);
+      const [tempo, setTempo] = useState(100);
+      const [showNames, setShowNames] = useState(true);
+      const [soundOn, setSoundOn] = useState(true);
+      const [calibrating, setCalibrating] = useState(false);
+      const [whiteKeyWidth, setWhiteKeyWidth] = useState(36);
+      const [keyboardOffsetX, setKeyboardOffsetX] = useState(0);
+      const [showFeedback, setShowFeedback] = useState(false);
+      const [loopA, setLoopA] = useState(null);
+      const [loopB, setLoopB] = useState(null);
+      const [loopEnabled, setLoopEnabled] = useState(false);
+      const [displayMode, setDisplayMode] = useState('falling');
+      const [showTips, setShowTips] = useState(false);
+      const firstCalibrationRef = useRef(true);
+
+      // iPad detection helper
+      const isIPad = useCallback(() => {
+        const ua = navigator.userAgent;
+        return (ua.includes('iPad') || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1));
+      }, []);
+
+      // Load saved calibration from localStorage
+      useEffect(() => {
+        try {
+          const saved = localStorage.getItem('krs-piano-calibration');
+          if (saved) {
+            const cal = JSON.parse(saved);
+            if (cal.whiteKeyWidth) {
+              setWhiteKeyWidth(cal.whiteKeyWidth);
+              const kbH = Math.max(130, Math.min(Math.round(window.innerHeight * 0.4), Math.round(cal.whiteKeyWidth * 3.5)));
+              document.documentElement.style.setProperty('--keyboard-h', kbH + 'px');
+            }
+            if (cal.keyboardOffsetX !== undefined) setKeyboardOffsetX(cal.keyboardOffsetX);
+          } else if (isIPad()) {
+            // No saved calibration and device is iPad: set default 365%
+            const defaultWidth = Math.round(36 * 3.65);
+            setWhiteKeyWidth(defaultWidth);
+            const kbH = Math.max(130, Math.min(Math.round(window.innerHeight * 0.4), Math.round(defaultWidth * 3.5)));
+            document.documentElement.style.setProperty('--keyboard-h', kbH + 'px');
+          }
+        } catch(e) {}
+      }, [isIPad]);
+
+      // Load saved loop positions from localStorage
+      useEffect(() => {
+        try {
+          const saved = localStorage.getItem('krs-piano-loops');
+          if (saved) {
+            const loops = JSON.parse(saved);
+            const slug = songName.toLowerCase().replace(/\s+/g, '-');
+            if (loops[slug]) {
+              setLoopA(loops[slug].loopA || null);
+              setLoopB(loops[slug].loopB || null);
+            } else {
+              setLoopA(null);
+              setLoopB(null);
+            }
+          }
+        } catch(e) {}
+      }, [songName]);
+
+      const canvasRef = useRef(null);
+      const animRef = useRef(null);
+      const lastTimeRef = useRef(null);
+      const prevActiveRef = useRef(new Set());
+      const prevBgActiveRef = useRef(new Set());
+      const currentTimeRef = useRef(-2.5);
+
+      // Auto-calibration on first playing screen entry
+      useEffect(() => {
+        if (screen === 'playing' && firstCalibrationRef.current && allNotes.length > 0) {
+          firstCalibrationRef.current = false;
+          setCalibrating(true);
+        }
+      }, [screen, allNotes]);
+
+      // === Derived: visual notes (what to practice) and bg notes (auto-play) ===
+      const { visualNotes, bgNotes } = useMemo(() => {
+        if (allTracks.length <= 1 || practiceMode === 'all') {
+          return { visualNotes: allNotes, bgNotes: [] };
+        }
+        const melodyTrack = allTracks.find(t => t.role === 'melody');
+        const accompTrack = allTracks.find(t => t.role === 'accompaniment');
+
+        if (practiceMode === 'melody' && melodyTrack) {
+          return {
+            visualNotes: melodyTrack.notes,
+            bgNotes: accompTrack ? accompTrack.notes : []
+          };
+        }
+        if (practiceMode === 'accompaniment' && accompTrack) {
+          return {
+            visualNotes: accompTrack.notes,
+            bgNotes: melodyTrack ? melodyTrack.notes : []
+          };
+        }
+        return { visualNotes: allNotes, bgNotes: [] };
+      }, [allTracks, allNotes, practiceMode]);
+
+      // Note range (based on visual notes — show only the relevant octaves)
+      const { start: startNote, end: endNote } = useMemo(() => computeNoteRange(visualNotes), [visualNotes]);
+
+      const whiteKeyCount = useMemo(() => {
+        let c = 0;
+        for (let i = startNote; i <= endNote; i++) { if (!isBlackKey(i)) c++; }
+        return c;
+      }, [startNote, endNote]);
+
+      // Auto-center keyboard
+      useEffect(() => {
+        const totalW = whiteKeyCount * whiteKeyWidth;
+        const screenW = window.innerWidth;
+        setKeyboardOffsetX((screenW - totalW) / 2);
+      }, [whiteKeyCount, whiteKeyWidth]);
+
+      const songDuration = useMemo(() => {
+        if (allNotes.length === 0) return 0;
+        return Math.max(...allNotes.map(n => n.start + n.duration));
+      }, [allNotes]);
+
+      // Active visual notes
+      const activeVisualNotes = useMemo(() => {
+        const active = new Set();
+        const ct = currentTime;
+        for (const n of visualNotes) {
+          if (ct >= n.start && ct < n.start + n.duration) active.add(n.note);
+        }
+        return active;
+      }, [visualNotes, currentTime]);
+
+      // Sound: trigger visual note on/off
+      useEffect(() => {
+        if (!soundOn || !playing) return;
+        const prev = prevActiveRef.current;
+        for (const midi of activeVisualNotes) {
+          if (!prev.has(midi)) soundEngine.noteOn(midi, 0.7, false);
+        }
+        for (const midi of prev) {
+          if (!activeVisualNotes.has(midi)) soundEngine.noteOff(midi, false);
+        }
+        prevActiveRef.current = new Set(activeVisualNotes);
+      }, [activeVisualNotes, soundOn, playing]);
+
+      // Active background notes
+      const activeBgNotes = useMemo(() => {
+        const active = new Set();
+        const ct = currentTime;
+        for (const n of bgNotes) {
+          if (ct >= n.start && ct < n.start + n.duration) active.add(n.note);
+        }
+        return active;
+      }, [bgNotes, currentTime]);
+
+      // Sound: trigger background note on/off
+      useEffect(() => {
+        if (!soundOn || !playing || bgNotes.length === 0) return;
+        const prev = prevBgActiveRef.current;
+        for (const midi of activeBgNotes) {
+          if (!prev.has(midi)) soundEngine.noteOn(midi, 0.5, true);
+        }
+        for (const midi of prev) {
+          if (!activeBgNotes.has(midi)) soundEngine.noteOff(midi, true);
+        }
+        prevBgActiveRef.current = new Set(activeBgNotes);
+      }, [activeBgNotes, soundOn, playing, bgNotes]);
+
+      // Animation loop
+      useEffect(() => {
+        if (!playing) {
+          lastTimeRef.current = null;
+          if (animRef.current) cancelAnimationFrame(animRef.current);
+          soundEngine.allNotesOff();
+          prevActiveRef.current = new Set();
+          prevBgActiveRef.current = new Set();
+          return;
+        }
+
+        soundEngine.init();
+        soundEngine.resume();
+        lastTimeRef.current = null;
+
+        const tick = (ts) => {
+          if (!lastTimeRef.current) lastTimeRef.current = ts;
+          const dt = (ts - lastTimeRef.current) / 1000;
+          lastTimeRef.current = ts;
+
+          currentTimeRef.current += dt * (tempo / 100);
+          let ct = currentTimeRef.current;
+
+          // A-B loop: if enabled and at loopB, jump back to loopA
+          if (loopEnabled && loopA !== null && loopB !== null && loopB > loopA && ct >= loopB) {
+            currentTimeRef.current = loopA;
+            ct = loopA;
+          }
+
+          if (ct > songDuration + 2) {
+            setPlaying(false);
+            currentTimeRef.current = -2.5;
+            setCurrentTime(-2.5);
+            return;
+          }
+          setCurrentTime(ct);
+          animRef.current = requestAnimationFrame(tick);
+        };
+        animRef.current = requestAnimationFrame(tick);
+        return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+      }, [playing, tempo, songDuration, loopEnabled, loopA, loopB]);
+
+      // === URL parameter: load song from ?song= (async, but screen is already 'loading') ===
+      useEffect(() => {
+        if (!initialSongParam) return;
+
+        async function loadInitialSong() {
+          try {
+            let result;
+            // Check if it's a library slug
+            const libraryEntry = SONG_LIBRARY[initialSongParam];
+            if (libraryEntry && libraryEntry.type === 'demo') {
+              // Demo song
+              setAllTracks([{ id: 0, name: 'Melodie', role: 'both', notes: DEMO_NOTES, metadata: analyzeTrack(DEMO_NOTES) }]);
+              setAllNotes(DEMO_NOTES);
+              setSongName(libraryEntry.name);
+            } else if (libraryEntry && libraryEntry.url) {
+              result = await parseMidiFromUrl(libraryEntry.url);
+              setAllTracks(result.tracks);
+              setAllNotes(result.allNotes);
+              setSongName(libraryEntry.name);
+            } else {
+              // Treat as URL — try as-is first, then with songs/ prefix
+              let songUrl = initialSongParam;
+              // If it looks like a slug (no / or .mid), try songs/ prefix
+              if (!songUrl.includes('/') && !songUrl.match(/\.midi?$/i)) {
+                songUrl = 'songs/' + songUrl + '.mid';
+              }
+              result = await parseMidiFromUrl(songUrl);
+              setAllTracks(result.tracks);
+              setAllNotes(result.allNotes);
+              setSongName(result.name);
+            }
+
+            // If practice mode was specified via URL
+            if (initialPracticeParam && ['melody', 'accompaniment', 'all'].includes(initialPracticeParam)) {
+              setPracticeMode(initialPracticeParam);
+              setScreen('playing');
+            } else {
+              setScreen('ready');
+            }
+          } catch (e) {
+            setError('Fehler beim Laden: ' + e.message);
+            setTimeout(() => setError(null), 7000);
+            setScreen('welcome');
+          } finally {
+            setLoading(false);
+          }
+        }
+        loadInitialSong();
+      }, [initialSongParam, initialPracticeParam]);
+
+      const progress = songDuration > 0 ? Math.max(0, Math.min(100, (currentTime / songDuration) * 100)) : 0;
+
+      // --- Actions ---
+      function loadDemo() {
+        setAllTracks([{ id: 0, name: 'Melodie', role: 'both', notes: DEMO_NOTES, metadata: analyzeTrack(DEMO_NOTES) }]);
+        setAllNotes(DEMO_NOTES);
+        setSongName('Ode an die Freude');
+        setPracticeMode('all');
+        setCurrentTime(-2.5);
+        currentTimeRef.current = -2.5;
+        setScreen('playing');
+      }
+
+      async function loadFile(file) {
+        setLoading(true);
+        setError(null);
+        try {
+          const result = await parseMidiFile(file);
+          if (result.allNotes.length === 0) throw new Error('Keine Noten in der MIDI-Datei gefunden.');
+          setAllTracks(result.tracks);
+          setAllNotes(result.allNotes);
+          setSongName(result.name);
+          setCurrentTime(-2.5);
+          currentTimeRef.current = -2.5;
+          // If multi-track, show ready screen for track selection
+          if (result.tracks.length > 1) {
+            setScreen('ready');
+          } else {
+            setPracticeMode('all');
+            setScreen('playing');
+          }
+        } catch (e) {
+          setError('Fehler beim Laden: ' + e.message);
+          setTimeout(() => setError(null), 7000);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function loadLibrarySong(slug, entry) {
+        if (!entry.url) return;
+        setLoading(true);
+        setError(null);
+        try {
+          const result = await parseMidiFromUrl(entry.url);
+          if (result.allNotes.length === 0) throw new Error('Keine Noten in der MIDI-Datei gefunden.');
+          setAllTracks(result.tracks);
+          setAllNotes(result.allNotes);
+          setSongName(entry.name);
+          setCurrentTime(-2.5);
+          currentTimeRef.current = -2.5;
+          if (result.tracks.length > 1) {
+            setScreen('ready');
+          } else {
+            setPracticeMode('all');
+            setScreen('playing');
+          }
+        } catch (e) {
+          setError('Fehler beim Laden: ' + e.message);
+          setTimeout(() => setError(null), 7000);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function handleReadyStart(mode) {
+        setPracticeMode(mode);
+        setCurrentTime(-2.5);
+        currentTimeRef.current = -2.5;
+        firstCalibrationRef.current = true;
+        setScreen('playing');
+      }
+
+      const togglePlay = useCallback(() => {
+        soundEngine.init();
+        soundEngine.resume();
+        if (!playing && currentTimeRef.current > songDuration) {
+          setCurrentTime(-2.5);
+          currentTimeRef.current = -2.5;
+        }
+        setPlaying(p => !p);
+      }, [playing, songDuration]);
+
+      const resetSong = useCallback(() => {
+        setPlaying(false);
+        soundEngine.allNotesOff();
+        setCurrentTime(-2.5);
+        currentTimeRef.current = -2.5;
+      }, []);
+
+      // Save loop positions to localStorage
+      function saveLoops() {
+        try {
+          const slug = songName.toLowerCase().replace(/\s+/g, '-');
+          const saved = localStorage.getItem('krs-piano-loops') || '{}';
+          const loops = JSON.parse(saved);
+          loops[slug] = { loopA, loopB };
+          localStorage.setItem('krs-piano-loops', JSON.stringify(loops));
+        } catch(e) {}
+      }
+
+      function goBack() {
+        setPlaying(false);
+        soundEngine.allNotesOff();
+        setAllTracks([]);
+        setAllNotes([]);
+        setSongName('');
+        setCurrentTime(-2.5);
+        currentTimeRef.current = -2.5;
+        setLoopA(null);
+        setLoopB(null);
+        setLoopEnabled(false);
+        setDisplayMode('falling');
+        firstCalibrationRef.current = true;
+        setScreen('welcome');
+      }
+
+      // Change practice mode during playback
+      function changePracticeMode(mode) {
+        setPlaying(false);
+        soundEngine.allNotesOff();
+        setPracticeMode(mode);
+        setCurrentTime(-2.5);
+        currentTimeRef.current = -2.5;
+      }
+
+      const headerFileRef = useRef(null);
+
+      // Calibration: pinch + drag via NATIVE event listeners (critical for iPad Safari)
+      // Preact's synthetic events delegate to document → preventDefault() arrives too late
+      const pinchRef = useRef(null);
+      const dragRef = useRef(null);
+      const appLayoutRef = useRef(null);
+      const calibratingRef = useRef(calibrating);
+      const whiteKeyWidthRef = useRef(whiteKeyWidth);
+      const keyboardOffsetXRef = useRef(keyboardOffsetX);
+      calibratingRef.current = calibrating;
+      whiteKeyWidthRef.current = whiteKeyWidth;
+      keyboardOffsetXRef.current = keyboardOffsetX;
+
+      // Toggle CSS class on <html> to block ALL browser gestures at root level
+      useEffect(() => {
+        if (calibrating) document.documentElement.classList.add('calibrating');
+        else document.documentElement.classList.remove('calibrating');
+      }, [calibrating]);
+
+      // Native touch event listeners — { passive: false } is REQUIRED on iOS Safari
+      useEffect(() => {
+        const el = appLayoutRef.current;
+        if (!el) return;
+
+        function onTouchStart(e) {
+          if (!calibratingRef.current) return;
+          // Don't block touches on calibration buttons
+          const tag = e.target.tagName;
+          if (tag === 'BUTTON' || tag === 'SPAN' || e.target.closest('.calibration-bar')) return;
+          e.preventDefault();
+          if (e.touches.length === 2) {
+            const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            pinchRef.current = { dist: d, startWidth: whiteKeyWidthRef.current, startOx: keyboardOffsetXRef.current,
+              cx: (e.touches[0].clientX + e.touches[1].clientX) / 2 };
+          } else if (e.touches.length === 1) {
+            dragRef.current = { startX: e.touches[0].clientX, startOx: keyboardOffsetXRef.current };
+          }
+        }
+
+        function onTouchMove(e) {
+          if (!calibratingRef.current) return;
+          if (e.target.closest('.calibration-bar')) return;
+          e.preventDefault();
+          if (e.touches.length === 2 && pinchRef.current) {
+            const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            const scale = d / pinchRef.current.dist;
+            const newW = Math.max(16, Math.min(150, pinchRef.current.startWidth * scale));
+            setWhiteKeyWidth(newW);
+            const kbH = Math.max(130, Math.min(Math.round(window.innerHeight * 0.4), Math.round(newW * 3.5)));
+            document.documentElement.style.setProperty('--keyboard-h', kbH + 'px');
+            const newTotal = whiteKeyCount * newW;
+            setKeyboardOffsetX((window.innerWidth - newTotal) / 2);
+          } else if (e.touches.length === 1 && dragRef.current) {
+            const dx = e.touches[0].clientX - dragRef.current.startX;
+            setKeyboardOffsetX(dragRef.current.startOx + dx);
+          }
+        }
+
+        function onTouchEnd() { pinchRef.current = null; dragRef.current = null; }
+
+        el.addEventListener('touchstart', onTouchStart, { passive: false });
+        el.addEventListener('touchmove', onTouchMove, { passive: false });
+        el.addEventListener('touchend', onTouchEnd);
+        return () => {
+          el.removeEventListener('touchstart', onTouchStart);
+          el.removeEventListener('touchmove', onTouchMove);
+          el.removeEventListener('touchend', onTouchEnd);
+        };
+      }, [whiteKeyCount]);
+
+      // Manual calibration helpers (buttons)
+      function adjustKeyWidth(delta) {
+        setWhiteKeyWidth(w => {
+          const newW = Math.max(16, Math.min(150, w + delta));
+          const kbH = Math.max(130, Math.min(Math.round(window.innerHeight * 0.4), Math.round(newW * 3.5)));
+          document.documentElement.style.setProperty('--keyboard-h', kbH + 'px');
+          const newTotal = whiteKeyCount * newW;
+          setKeyboardOffsetX((window.innerWidth - newTotal) / 2);
+          return newW;
+        });
+      }
+      function adjustOffset(delta) {
+        setKeyboardOffsetX(ox => ox + delta);
+      }
+
+      // Keyboard shortcuts
+      useEffect(() => {
+        const onKey = (e) => {
+          if (screen !== 'playing') return;
+          if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+          if (e.code === 'KeyR') { e.preventDefault(); resetSong(); }
+          if (e.code === 'ArrowUp') { e.preventDefault(); setTempo(t => Math.min(200, t + 5)); }
+          if (e.code === 'ArrowDown') { e.preventDefault(); setTempo(t => Math.max(10, t - 5)); }
+          if (e.code === 'KeyN') { e.preventDefault(); setShowNames(s => !s); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [screen, playing, togglePlay, resetSong]);
+
+      const pxPerSec = 160;
+      const hasMultipleTracks = allTracks.length > 1;
+
+      return html`
+        <div class="app-layout" ref=${appLayoutRef}>
+
+          <!-- Rotate hint for portrait -->
+          <div class="rotate-hint">
+            <div class="rotate-hint-icon">📱</div>
+            Bitte drehe dein iPad ins Querformat
+          </div>
+
+          ${loading && html`
+            <div class="loading-overlay">
+              <div class="spinner" />
+              <div style="font-size:14px;color:var(--text-secondary)">Song wird geladen...</div>
+            </div>
+          `}
+
+          ${error && html`<div class="toast">${error}</div>`}
+
+          ${screen === 'welcome' && html`
+            <${WelcomeScreen} onDemo=${loadDemo} onFile=${loadFile} onLibrarySong=${loadLibrarySong} />
+          `}
+
+          ${screen === 'ready' && html`
+            <${ReadyScreen}
+              songName=${songName}
+              tracks=${allTracks}
+              onStart=${handleReadyStart}
+            />
+          `}
+
+          <!-- HEADER -->
+          <div class="header">
+            <div class="header-left">
+              ${screen === 'playing' && html`
+                <button class="btn btn-icon" onClick=${goBack} title="Zurück" style="font-size:14px;">←</button>
+              `}
+              <div class="logo-badge">KRS</div>
+              <div>
+                <div class="app-title">Piano Trainer</div>
+                <div class="app-subtitle">Kurpfalz-Realschule</div>
+              </div>
+            </div>
+
+            <div class="header-center">
+              <span class="song-name">${songName ? '🎵 ' + songName : 'Kein Song geladen'}</span>
+
+              ${hasMultipleTracks && screen === 'playing' && html`
+                <div class="track-selector">
+                  <button class="track-option melody ${practiceMode === 'melody' ? 'active' : ''}"
+                          onClick=${() => changePracticeMode('melody')}>RH</button>
+                  <button class="track-option accomp ${practiceMode === 'accompaniment' ? 'active' : ''}"
+                          onClick=${() => changePracticeMode('accompaniment')}>LH</button>
+                  <button class="track-option all ${practiceMode === 'all' ? 'active' : ''}"
+                          onClick=${() => changePracticeMode('all')}>Beide</button>
+                </div>
+              `}
+
+              <div class="tempo-control">
+                <span class="tempo-label">Tempo</span>
+                <button class="tempo-btn" onClick=${() => setTempo(Math.max(10, tempo - 25))} aria-label="Tempo verringern">−</button>
+                <span class="tempo-value">${tempo}%</span>
+                <button class="tempo-btn" onClick=${() => setTempo(Math.min(200, tempo + 25))} aria-label="Tempo erhöhen">+</button>
+              </div>
+            </div>
+
+            <div class="header-right">
+              <div class="toggle-group" title="Anzeige-Modus">
+                <button class="toggle-option ${displayMode === 'falling' ? 'active' : ''}" onClick=${() => setDisplayMode('falling')} aria-label="Fallende Noten Modus">Noten</button>
+                <button class="toggle-option ${displayMode === 'flash' ? 'active' : ''}" onClick=${() => setDisplayMode('flash')} aria-label="Flash Modus">Flash</button>
+              </div>
+
+              <div class="toggle-group" title="Notennamen anzeigen">
+                <button class="toggle-option ${showNames ? 'active' : ''}" onClick=${() => setShowNames(true)}>ABC</button>
+                <button class="toggle-option ${!showNames ? 'active' : ''}" onClick=${() => setShowNames(false)}>—</button>
+              </div>
+
+              <button class="btn btn-icon"
+                      onClick=${() => { setSoundOn(!soundOn); if (soundOn) soundEngine.allNotesOff(); }}
+                      title=${soundOn ? 'Ton aus' : 'Ton ein'}
+                      aria-label=${soundOn ? 'Ton ausschalten' : 'Ton einschalten'}
+                      style="font-size:15px;">
+                ${soundOn ? '🔊' : '🔇'}
+              </button>
+
+              <button class="btn btn-icon" onClick=${() => setShowTips(true)} title="Übetipps" style="font-size:14px;">💡</button>
+
+              <button class="btn btn-icon" onClick=${() => setShowFeedback(true)} title="Feedback" aria-label="Feedback senden" style="font-size:14px;">💬</button>
+
+              <button class="btn btn-icon" onClick=${() => { headerFileRef.current.click(); }}
+                      title="MIDI laden" style="font-size:14px;">📁</button>
+              <input ref=${headerFileRef} type="file" accept=".mid,.midi" style="display:none"
+                     onChange=${(e) => { if (e.target.files[0]) loadFile(e.target.files[0]); }} />
+
+              <button class="btn btn-icon" onClick=${resetSong} title="Neu starten" aria-label="Song neu starten" style="font-size:15px;">↺</button>
+              <button class="btn btn-play ${playing ? 'playing' : ''}" onClick=${togglePlay}
+                      aria-label=${playing ? 'Pause' : 'Abspielen'}>
+                ${playing ? '⏸' : '▶'}
+              </button>
+            </div>
+          </div>
+
+          <!-- PROGRESS -->
+          <div class="progress-wrap">
+            <div class="progress-fill" style="width:${Math.max(0, progress)}%" />
+          </div>
+
+          <!-- CALIBRATION BAR (fixed at top, below header) -->
+          ${calibrating ? html`
+            <div class="calibration-bar calibrating-active">
+              <div class="cal-btn-group">
+                <span style="margin-right:4px">Größe:</span>
+                <button class="cal-btn-big" onClick=${() => adjustKeyWidth(-5)}>−</button>
+                <button class="cal-btn-big" onClick=${() => adjustKeyWidth(5)}>+</button>
+              </div>
+              <div class="cal-btn-group">
+                <span style="margin-right:4px">Position:</span>
+                <button class="cal-btn-big" onClick=${() => adjustOffset(-20)}>←</button>
+                <button class="cal-btn-big" onClick=${() => adjustOffset(20)}>→</button>
+              </div>
+              <span style="font-weight:600;min-width:45px;text-align:center">${Math.round(whiteKeyWidth / 36 * 100)}%</span>
+              <button onClick=${() => {
+                const totalW = whiteKeyCount * 36;
+                setWhiteKeyWidth(36);
+                document.documentElement.style.setProperty('--keyboard-h', '130px');
+                setKeyboardOffsetX((window.innerWidth - totalW) / 2);
+              }}>↺ Reset</button>
+              <button class="cal-btn-done" onClick=${() => { setCalibrating(false); try { localStorage.setItem('krs-piano-calibration', JSON.stringify({ whiteKeyWidth, keyboardOffsetX })); } catch(e) {} }}>Fertig ✓</button>
+            </div>
+          ` : html`
+            <div class="calibration-bar">
+              <button class="cal-btn-big" onClick=${() => adjustOffset(40)} style="font-size:14px;padding:3px 10px;min-width:30px;min-height:28px">←</button>
+              <button onClick=${() => setCalibrating(true)} aria-label="Tastatur kalibrieren">🎯 Tastatur anpassen</button>
+              <span style="font-size:10px;color:var(--text-muted);margin-left:4px">Zoom: ${Math.round(whiteKeyWidth / 36 * 100)}%</span>
+              <button class="cal-btn-big" onClick=${() => adjustOffset(-40)} style="font-size:14px;padding:3px 10px;min-width:30px;min-height:28px">→</button>
+            </div>
+          `}
+
+          <!-- CANVAS -->
+          <${NoteCanvas}
+            visualNotes=${visualNotes}
+            bgNotes=${bgNotes}
+            currentTime=${currentTime}
+            startNote=${startNote}
+            endNote=${endNote}
+            pxPerSec=${pxPerSec}
+            showNames=${showNames}
+            whiteKeyWidth=${whiteKeyWidth}
+            offsetX=${keyboardOffsetX}
+            canvasRef=${canvasRef}
+            displayMode=${displayMode}
+          />
+
+          <!-- KEYBOARD -->
+          <${Keyboard}
+            startNote=${startNote}
+            endNote=${endNote}
+            activeNotes=${activeVisualNotes}
+            showNames=${showNames}
+            whiteKeyWidth=${whiteKeyWidth}
+            offsetX=${keyboardOffsetX}
+          />
+
+          <!-- A-B LOOP CONTROLS (in playing screen) -->
+          ${screen === 'playing' && html`
+            <div style="position:fixed;bottom:150px;left:12px;display:flex;gap:6px;z-index:20">
+              <div class="loop-marker-group">
+                <button class="loop-btn ${loopA !== null ? 'active' : ''}"
+                        onClick=${() => { const ct = currentTime; if (ct >= 0) setLoopA(ct); else setLoopA(null); }}
+                        title="A-Marker setzen" aria-label="Loop-Start setzen">A</button>
+                <button class="loop-btn ${loopB !== null ? 'active' : ''}"
+                        onClick=${() => { const ct = currentTime; if (ct >= 0) setLoopB(ct); else setLoopB(null); }}
+                        title="B-Marker setzen" aria-label="Loop-Ende setzen">B</button>
+                <button class="loop-toggle-btn ${loopEnabled ? 'active' : ''}"
+                        onClick=${() => { if (loopA !== null && loopB !== null && loopB > loopA) { setLoopEnabled(!loopEnabled); saveLoops(); } }}
+                        title="Loop aktivieren" aria-label="Loop ein/aus"
+                        style="opacity:${loopA !== null && loopB !== null && loopB > loopA ? 1 : 0.3}">Loop</button>
+                <button class="loop-btn"
+                        onClick=${() => { setLoopA(null); setLoopB(null); setLoopEnabled(false); }}
+                        title="Loop löschen" aria-label="Loop löschen"
+                        style="font-size:10px;padding:0">✕</button>
+              </div>
+            </div>
+          `}
+
+          <!-- A-B LOOP PROGRESS MARKERS -->
+          ${screen === 'playing' && loopA !== null && loopB !== null && loopB > loopA && html`
+            <div style="position:absolute;top:48px;left:0;right:0;height:3px;z-index:5">
+              ${loopA !== null && songDuration > 0 && html`
+                <div class="loop-marker a" style="left:${Math.max(0, (loopA / songDuration) * 100)}%" />
+              `}
+              ${loopB !== null && songDuration > 0 && html`
+                <div class="loop-marker b" style="left:${Math.max(0, (loopB / songDuration) * 100)}%" />
+              `}
+            </div>
+          `}
+
+          <${FeedbackModal} isOpen=${showFeedback} onClose=${() => setShowFeedback(false)} />
+          <${TipsModal} isOpen=${showTips} onClose=${() => setShowTips(false)} />
+        </div>
+      `;
+    }
+
+    // =============================================
+    // RENDER
+    // =============================================
+    render(html`<${App} />`, document.getElementById('app'));
+
+    // iOS Safari: Unlock AudioContext on first user interaction
+    const unlockAudio = () => {
+      soundEngine.init();
+      soundEngine.resume();
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchend', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchend', unlockAudio);
+
+    // Register Service Worker for offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

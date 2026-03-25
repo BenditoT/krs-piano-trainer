@@ -1,0 +1,17 @@
+{
+  "name": "KRS Piano Trainer",
+  "short_name": "Piano Trainer",
+  "description": "Lerne Klavier mit fallenden Noten — Kurpfalz-Realschule Schriesheim",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#F4F6FA",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563EB'/><text x='50' y='62' text-anchor='middle' font-size='32' font-weight='800' fill='white' font-family='system-ui'>KRS</text><text x='50' y='82' text-anchor='middle' font-size='16' fill='rgba(255,255,255,0.8)' font-family='system-ui'>🎹</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
