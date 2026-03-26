@@ -343,6 +343,76 @@
       color: var(--accent); cursor: pointer; text-decoration: underline;
     }
 
+    /* === ONBOARDING SCREEN === */
+    .onboarding-overlay {
+      position: fixed; inset: 0; z-index: 150;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.4s ease;
+    }
+    .onboarding-card {
+      background: var(--bg-white); border-radius: 24px; padding: 32px 24px 24px;
+      max-width: 400px; width: 90%; text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+      position: relative; overflow: hidden;
+    }
+    .onboarding-slide { animation: slideIn 0.35s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+    .onboarding-icon {
+      width: 72px; height: 72px; border-radius: 20px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 36px; margin-bottom: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    .onboarding-icon.notes { background: linear-gradient(135deg, #2563EB, #60A5FA); }
+    .onboarding-icon.practice { background: linear-gradient(135deg, #059669, #34D399); }
+    .onboarding-icon.calibrate { background: linear-gradient(135deg, #D97706, #FBBF24); }
+    .onboarding-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    .onboarding-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
+    .onboarding-text strong { color: var(--text-primary); font-weight: 600; }
+    .onboarding-tips {
+      text-align: left; background: var(--bg-primary); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 20px;
+    }
+    .onboarding-tip {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+      padding: 6px 0;
+    }
+    .onboarding-tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .onboarding-dots {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;
+    }
+    .onboarding-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); transition: all 0.25s;
+    }
+    .onboarding-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+    .onboarding-nav {
+      display: flex; gap: 10px; justify-content: center;
+    }
+    .onboarding-btn {
+      padding: 13px 28px; border-radius: 12px; border: none;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .onboarding-btn:active { transform: scale(0.97); }
+    .onboarding-btn.primary {
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      color: white; box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+      flex: 1;
+    }
+    .onboarding-btn.secondary {
+      background: var(--bg-primary); color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .onboarding-skip {
+      position: absolute; top: 14px; right: 16px;
+      font-size: 12px; color: var(--text-muted); cursor: pointer;
+      background: none; border: none; padding: 4px 8px;
+    }
+    .onboarding-skip:hover { color: var(--text-secondary); }
+
     /* === SONG LIBRARY === */
     .library-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -1050,6 +1120,104 @@
     // =============================================
     // WELCOME SCREEN (with Song Library)
     // =============================================
+    // =============================================
+    // ONBOARDING SCREEN (first-time users)
+    // =============================================
+    function OnboardingScreen({ onComplete }) {
+      const [slide, setSlide] = useState(0);
+      const totalSlides = 3;
+
+      const slides = [
+        {
+          iconClass: 'notes',
+          icon: '🎵',
+          title: 'Noten fallen auf die Tasten',
+          text: html`Stelle dein iPad oder Tablet <strong>hinter die Klaviertastatur</strong>. Die Noten fallen von oben herunter — genau auf die richtigen Tasten. Spiele einfach mit, wenn sie unten ankommen!`,
+          tips: [
+            { icon: '📱', text: 'iPad im Querformat hinter die Tasten stellen' },
+            { icon: '🎹', text: 'Die fallenden Noten zeigen dir, welche Taste du drücken musst' },
+            { icon: '👀', text: 'Schau auf den Bildschirm und spiele gleichzeitig' }
+          ]
+        },
+        {
+          iconClass: 'practice',
+          icon: '🔁',
+          title: 'Clever üben',
+          text: html`Nutze smarte Übungsstrategien, um schneller Fortschritte zu machen. <strong>Langsam üben</strong> ist der Schlüssel zum schnellen Spielen!`,
+          tips: [
+            { icon: '🐢', text: 'Starte mit langsamem Tempo — steigere erst, wenn es sicher sitzt' },
+            { icon: '🔄', text: 'A-B Loop: Markiere schwierige Stellen und übe sie in der Schleife' },
+            { icon: '⚡', text: 'Flash-Modus: Die Noten warten, bis du die richtige Taste triffst' },
+            { icon: '🎯', text: 'Übe erst rechte, dann linke Hand — dann beides zusammen' }
+          ]
+        },
+        {
+          iconClass: 'calibrate',
+          icon: '📐',
+          title: 'Klavier kalibrieren',
+          text: html`Damit die Noten <strong>genau auf deine Tasten</strong> fallen, kalibriere einmal die Position. Das dauert nur wenige Sekunden und macht einen großen Unterschied!`,
+          tips: [
+            { icon: '⚙️', text: 'Nach dem Start: Kalibrierung im Menü oben rechts starten' },
+            { icon: '↔️', text: 'Schiebe den Schieberegler, bis die Tasten auf dem Bildschirm mit deinem Klavier übereinstimmen' },
+            { icon: '💾', text: 'Die Kalibrierung wird gespeichert — du musst es nur einmal machen' }
+          ]
+        }
+      ];
+
+      const currentSlide = slides[slide];
+      const isLast = slide === totalSlides - 1;
+
+      return html`
+        <div class="onboarding-overlay" onClick=${(e) => e.stopPropagation()}>
+          <div class="onboarding-card">
+            <button class="onboarding-skip" onClick=${onComplete} aria-label="Onboarding überspringen">
+              Überspringen
+            </button>
+
+            <div class="onboarding-slide" key=${slide}>
+              <div class="onboarding-icon ${currentSlide.iconClass}">
+                ${currentSlide.icon}
+              </div>
+              <div class="onboarding-title">${currentSlide.title}</div>
+              <div class="onboarding-text">${currentSlide.text}</div>
+
+              <div class="onboarding-tips">
+                ${currentSlide.tips.map(tip => html`
+                  <div class="onboarding-tip">
+                    <span class="onboarding-tip-icon">${tip.icon}</span>
+                    <span>${tip.text}</span>
+                  </div>
+                `)}
+              </div>
+            </div>
+
+            <div class="onboarding-dots">
+              ${slides.map((_, i) => html`
+                <div class="onboarding-dot ${i === slide ? 'active' : ''}" key=${i} />
+              `)}
+            </div>
+
+            <div class="onboarding-nav">
+              ${slide > 0 && html`
+                <button class="onboarding-btn secondary" onClick=${() => setSlide(s => s - 1)}>
+                  ← Zurück
+                </button>
+              `}
+              <button class="onboarding-btn primary" onClick=${() => {
+                if (isLast) {
+                  onComplete();
+                } else {
+                  setSlide(s => s + 1);
+                }
+              }}>
+                ${isLast ? '🎹 Los geht\'s!' : 'Weiter →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function WelcomeScreen({ onDemo, onFile, onLibrarySong }) {
       const fileRef = useRef(null);
       const libraryEntries = Object.entries(SONG_LIBRARY);
@@ -1320,6 +1488,9 @@
       const [loopEnabled, setLoopEnabled] = useState(false);
       const [displayMode, setDisplayMode] = useState('falling');
       const [showTips, setShowTips] = useState(false);
+      const [showOnboarding, setShowOnboarding] = useState(() => {
+        try { return !localStorage.getItem('krs_piano_onboarding_v1'); } catch(e) { return true; }
+      });
       const firstCalibrationRef = useRef(true);
 
       // iPad detection helper
@@ -1666,6 +1837,11 @@
         } catch(e) {}
       }
 
+      function completeOnboarding() {
+        try { localStorage.setItem('krs_piano_onboarding_v1', '1'); } catch(e) {}
+        setShowOnboarding(false);
+      }
+
       function goBack() {
         setPlaying(false);
         soundEngine.allNotesOff();
@@ -1812,7 +1988,11 @@
 
           ${error && html`<div class="toast">${error}</div>`}
 
-          ${screen === 'welcome' && html`
+          ${showOnboarding && screen === 'welcome' && html`
+            <${OnboardingScreen} onComplete=${completeOnboarding} />
+          `}
+
+          ${screen === 'welcome' && !showOnboarding && html`
             <${WelcomeScreen} onDemo=${loadDemo} onFile=${loadFile} onLibrarySong=${loadLibrarySong} />
           `}
 
