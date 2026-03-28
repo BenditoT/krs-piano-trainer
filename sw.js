@@ -1,6 +1,6 @@
 // KRS Piano Trainer — Service Worker for Offline Cache
-// v3: network-first for app shell to ensure updates reach devices immediately
-const CACHE_NAME = 'krs-piano-v3';
+// v4: network-first for app shell to ensure updates reach devices immediately
+const CACHE_NAME = 'krs-piano-v4';
 const ASSETS = [
   './',
   './index.html',
