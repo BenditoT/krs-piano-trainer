@@ -498,6 +498,138 @@
     @media (orientation: landscape) {
       .rotate-hint { display: none; }
     }
+
+    /* === COUNTDOWN OVERLAY === */
+    @keyframes countdownPulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 0.8; }
+    }
+    .countdown-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 120px; font-weight: 700; color: white;
+      animation: countdownPulse 0.8s ease;
+    }
+
+    /* === PROGRESS BAR + TIME LABEL === */
+    .progress-container {
+      position: absolute; left: 0; right: 0; bottom: -10px;
+      height: 18px; padding: 0 12px; background: var(--bg-white);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .progress-time {
+      font-size: 11px; color: var(--text-muted); font-weight: 500;
+      min-width: 50px;
+    }
+    .progress-bar {
+      flex: 1; height: 6px; background: var(--border); border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.05s linear;
+    }
+
+    /* === COMPLETION OVERLAY === */
+    .completion-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .completion-card {
+      background: var(--bg-white); border-radius: 20px; padding: 40px 32px;
+      max-width: 380px; width: 90%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .completion-emoji {
+      font-size: 60px; margin-bottom: 16px;
+    }
+    .completion-title {
+      font-size: 24px; font-weight: 700; margin-bottom: 16px;
+      color: var(--green);
+    }
+    .completion-stats {
+      background: var(--bg-primary); border-radius: 12px; padding: 16px;
+      margin-bottom: 20px; text-align: left;
+    }
+    .completion-stat {
+      display: flex; justify-content: space-between; margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .completion-stat-label {
+      color: var(--text-secondary); font-weight: 500;
+    }
+    .completion-stat-value {
+      color: var(--text-primary); font-weight: 600;
+    }
+    .completion-buttons {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    }
+    .completion-btn {
+      padding: 12px 24px; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .completion-btn:active { transform: scale(0.95); }
+    .completion-btn-primary {
+      background: var(--green); color: white;
+      box-shadow: 0 3px 10px rgba(52,199,89,0.3);
+    }
+    .completion-btn-secondary {
+      background: var(--bg-primary); color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    /* === FILTER BAR === */
+    .filter-bar {
+      display: flex; gap: 6px; margin-bottom: 10px; justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);
+      background: var(--bg-white); color: var(--text-secondary);
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .filter-btn:active { transform: scale(0.95); }
+    .filter-btn.active {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+
+    /* === TEMPO PRESETS === */
+    .tempo-preset {
+      padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-white); color: var(--text-secondary);
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tempo-preset:active { transform: scale(0.93); }
+    .tempo-preset.active {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+
+    /* === UPDATE BANNER === */
+    .update-banner {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(135deg, #FF9500, #FF6B00);
+      color: white; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      z-index: 999; font-size: 13px; font-weight: 500;
+      box-shadow: 0 -3px 10px rgba(0,0,0,0.1);
+    }
+    .update-banner button {
+      background: white; color: #FF9500; border: none;
+      padding: 6px 12px; border-radius: 6px;
+      font-weight: 600; font-size: 12px; cursor: pointer;
+      margin-left: 10px;
+    }
+    .update-banner button:active { opacity: 0.9; }
+
   </style>
 </head>
 <body>
@@ -549,7 +681,14 @@
     // =============================================
     // SONG LIBRARY (slug-based)
     // =============================================
-    const SONG_LIBRARY = {
+    // Helper: Format seconds to MM:SS
+    const formatTime = (sec) => {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return m + ':' + String(s).padStart(2, '0');
+    };
+
+        const SONG_LIBRARY = {
       'ode-an-die-freude': {
         name: 'Ode an die Freude',
         artist: 'Beethoven',
@@ -585,6 +724,36 @@
         artist: 'Vivaldi',
         level: 2,
         url: 'songs/vivaldi-fruehling.mid'
+      },
+      'happy-birthday': {
+        name: 'Happy Birthday',
+        artist: 'Traditional',
+        level: 1,
+        url: 'songs/happy-birthday.mid'
+      },
+      'fuer-elise': {
+        name: 'Für Elise',
+        artist: 'Beethoven',
+        level: 2,
+        url: 'songs/fuer-elise.mid'
+      },
+      'menuett-g': {
+        name: 'Menuett in G',
+        artist: 'Bach',
+        level: 2,
+        url: 'songs/menuett-g.mid'
+      },
+      'entertainer': {
+        name: 'The Entertainer',
+        artist: 'Scott Joplin',
+        level: 3,
+        url: 'songs/entertainer.mid'
+      },
+      'canon-d': {
+        name: 'Canon in D',
+        artist: 'Pachelbel',
+        level: 3,
+        url: 'songs/canon-d.mid'
       }
     };
 
@@ -1123,7 +1292,7 @@
     // =============================================
     // ONBOARDING SCREEN (first-time users)
     // =============================================
-    function OnboardingScreen({ onComplete }) {
+    function OnboardingScreen({ onComplete, onStartCalibration }) {
       const [slide, setSlide] = useState(0);
       const totalSlides = 3;
 
@@ -1218,9 +1387,67 @@
       `;
     }
 
+
+
+    // =============================================
+    // COMPLETION SCREEN
+    // =============================================
+    function CompletionScreen({ songName, tempo, mode, duration, onRetry, onBack }) {
+      const modeLabel = { melody: '🎵 Rechte Hand', accompaniment: '🎹 Linke Hand', all: '🎼 Beide Hände' }[mode] || 'Spiel';
+      return html`
+        <div class="completion-overlay" onClick=${(e) => e.stopPropagation()}>
+          <div class="completion-card">
+            <div class="completion-emoji">🎉</div>
+            <div class="completion-title">Geschafft!</div>
+            <div class="completion-stats">
+              <div class="completion-stat">
+                <span class="completion-stat-label">Song:</span>
+                <span class="completion-stat-value">${songName}</span>
+              </div>
+              <div class="completion-stat">
+                <span class="completion-stat-label">Tempo:</span>
+                <span class="completion-stat-value">${tempo}%</span>
+              </div>
+              <div class="completion-stat">
+                <span class="completion-stat-label">Modus:</span>
+                <span class="completion-stat-value">${modeLabel}</span>
+              </div>
+              <div class="completion-stat">
+                <span class="completion-stat-label">Dauer:</span>
+                <span class="completion-stat-value">${formatTime(duration)}</span>
+              </div>
+            </div>
+            <div class="completion-buttons">
+              <button class="completion-btn completion-btn-primary" onClick=${onRetry}>
+                ↺ Nochmal
+              </button>
+              <button class="completion-btn completion-btn-secondary" onClick=${onBack}>
+                📚 Andere Songs
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
     function WelcomeScreen({ onDemo, onFile, onLibrarySong }) {
+      const [filterLevel, setFilterLevel] = useState(0);
       const fileRef = useRef(null);
+
+      const stats = useMemo(() => {
+        try {
+          return JSON.parse(localStorage.getItem('krs-piano-stats') || '[]');
+        } catch(e) {
+          return [];
+        }
+      }, []);
+
       const libraryEntries = Object.entries(SONG_LIBRARY);
+      const filtered = filterLevel === 0 ? libraryEntries : libraryEntries.filter(([_, s]) => s.level === filterLevel);
+
+      const getPlayCount = (songSlug) => {
+        if (!SONG_LIBRARY[songSlug]) return 0;
+        return stats.filter(s => s.song === SONG_LIBRARY[songSlug].name).length;
+      };
 
       return html`
         <div class="welcome-overlay" onClick=${(e) => e.stopPropagation()}>
@@ -1235,15 +1462,27 @@
             ${libraryEntries.length > 0 && html`
               <div style="margin-bottom:12px;">
                 <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Song-Bibliothek</div>
+                <div class="filter-bar">
+                  <button class="filter-btn ${filterLevel === 0 ? 'active' : ''}" onClick=${() => setFilterLevel(0)}>Alle</button>
+                  <button class="filter-btn ${filterLevel === 1 ? 'active' : ''}" onClick=${() => setFilterLevel(1)}>★ Anfänger</button>
+                  <button class="filter-btn ${filterLevel === 2 ? 'active' : ''}" onClick=${() => setFilterLevel(2)}>★★ Mittel</button>
+                  <button class="filter-btn ${filterLevel === 3 ? 'active' : ''}" onClick=${() => setFilterLevel(3)}>★★★ Fortgeschritten</button>
+                </div>
                 <div class="library-grid">
-                  ${libraryEntries.map(([slug, song]) => html`
-                    <div class="library-card" key=${slug}
-                         onClick=${() => song.type === 'demo' ? onDemo() : onLibrarySong(slug, song)}>
-                      <div class="library-card-title">${song.name}</div>
-                      <div class="library-card-artist">${song.artist}</div>
-                      <div class="library-card-level">${'★'.repeat(song.level)}${'☆'.repeat(3 - song.level)}</div>
-                    </div>
-                  `)}
+                  ${filtered.map(([slug, song]) => {
+                    const count = getPlayCount(slug);
+                    return html`
+                      <div class="library-card" key=${slug}
+                           onClick=${() => song.type === 'demo' ? onDemo() : onLibrarySong(slug, song)}>
+                        <div class="library-card-title">${song.name}</div>
+                        <div class="library-card-artist">${song.artist}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+                          <div class="library-card-level">${'★'.repeat(song.level)}${'☆'.repeat(3 - song.level)}</div>
+                          ${count > 0 && html`<span style="font-size:9px;color:var(--green);font-weight:600">${count}× geübt</span>`}
+                        </div>
+                      </div>
+                    `;
+                  })}
                 </div>
               </div>
             `}
@@ -1488,6 +1727,9 @@
       const [loopEnabled, setLoopEnabled] = useState(false);
       const [displayMode, setDisplayMode] = useState('falling');
       const [showTips, setShowTips] = useState(false);
+      const [countdown, setCountdown] = useState(null);
+      const [filterLevel, setFilterLevel] = useState(0);
+      const [completionScreen, setCompletionScreen] = useState(false);
       const [showOnboarding, setShowOnboarding] = useState(() => {
         try { return !localStorage.getItem('krs_piano_onboarding_v1'); } catch(e) { return true; }
       });
@@ -1673,10 +1915,9 @@
             ct = loopA;
           }
 
-          if (ct > songDuration + 2) {
-            setPlaying(false);
-            currentTimeRef.current = -2.5;
-            setCurrentTime(-2.5);
+          if (ct > songDuration + 0.5) {
+            // Song finished — completion screen will handle the rest
+            setCurrentTime(ct);
             return;
           }
           setCurrentTime(ct);
@@ -1812,11 +2053,17 @@
       const togglePlay = useCallback(() => {
         soundEngine.init();
         soundEngine.resume();
-        if (!playing && currentTimeRef.current > songDuration) {
+        if (playing) {
+          setPlaying(false);
+          setCountdown(null);
+          return;
+        }
+        if (currentTimeRef.current > songDuration) {
           setCurrentTime(-2.5);
           currentTimeRef.current = -2.5;
         }
-        setPlaying(p => !p);
+        // Start countdown 3-2-1 then play
+        setCountdown(3);
       }, [playing, songDuration]);
 
       const resetSong = useCallback(() => {
@@ -1834,6 +2081,24 @@
           const loops = JSON.parse(saved);
           loops[slug] = { loopA, loopB };
           localStorage.setItem('krs-piano-loops', JSON.stringify(loops));
+        } catch(e) {}
+      }
+
+      
+      // Save practice stats to localStorage
+      function savePracticeStats() {
+        try {
+          const stats = JSON.parse(localStorage.getItem('krs-piano-stats') || '[]');
+          stats.push({
+            song: songName,
+            tempo,
+            mode: practiceMode,
+            duration: songDuration,
+            date: new Date().toISOString()
+          });
+          // Keep last 100 entries
+          if (stats.length > 100) stats.splice(0, stats.length - 100);
+          localStorage.setItem('krs-piano-stats', JSON.stringify(stats));
         } catch(e) {}
       }
 
@@ -1967,6 +2232,38 @@
         return () => window.removeEventListener('keydown', onKey);
       }, [screen, playing, togglePlay, resetSong]);
 
+      // Countdown effect: 3-2-1-Los!-play
+      useEffect(() => {
+        if (countdown === null) return;
+        if (countdown < 0) {
+          // After "Los!" was shown, start playing
+          setPlaying(true);
+          setCountdown(null);
+          return;
+        }
+        const timer = setTimeout(() => {
+          if (countdown > 0) {
+            setCountdown(countdown - 1);
+          } else {
+            // countdown === 0: "Los!" is showing, next tick starts playing
+            setCountdown(-1);
+          }
+        }, countdown === 0 ? 600 : 800);
+        return () => clearTimeout(timer);
+      }, [countdown]);
+
+      // Completion screen: show when song ends
+      useEffect(() => {
+        if (screen === 'playing' && playing && songDuration > 0) {
+          if (currentTime >= songDuration) {
+            setPlaying(false);
+            setCompletionScreen(true);
+            savePracticeStats();
+          }
+        }
+      }, [currentTime, songDuration, playing, screen]);
+
+
       const pxPerSec = 160;
       const hasMultipleTracks = allTracks.length > 1;
 
@@ -1987,6 +2284,31 @@
           `}
 
           ${error && html`<div class="toast">${error}</div>`}
+
+          ${countdown !== null && countdown >= 0 && html`
+            <div class="countdown-overlay">
+              ${countdown > 0 ? countdown : 'Los!'}
+            </div>
+          `}
+
+          ${completionScreen && html`
+            <${CompletionScreen}
+              songName=${songName}
+              tempo=${tempo}
+              mode=${practiceMode}
+              duration=${songDuration}
+              onRetry=${() => {
+                setCompletionScreen(false);
+                setCurrentTime(-2.5);
+                currentTimeRef.current = -2.5;
+                setCountdown(3);
+              }}
+              onBack=${() => {
+                setCompletionScreen(false);
+                goBack();
+              }}
+            />
+          `}
 
           ${showOnboarding && screen === 'welcome' && html`
             <${OnboardingScreen} onComplete=${completeOnboarding} />
@@ -2036,6 +2358,9 @@
                 <button class="tempo-btn" onClick=${() => setTempo(Math.max(10, tempo - 25))} aria-label="Tempo verringern">−</button>
                 <span class="tempo-value">${tempo}%</span>
                 <button class="tempo-btn" onClick=${() => setTempo(Math.min(200, tempo + 25))} aria-label="Tempo erhöhen">+</button>
+                <button class="tempo-preset ${tempo === 50 ? 'active' : ''}" onClick=${() => setTempo(50)}>50%</button>
+                <button class="tempo-preset ${tempo === 75 ? 'active' : ''}" onClick=${() => setTempo(75)}>75%</button>
+                <button class="tempo-preset ${tempo === 100 ? 'active' : ''}" onClick=${() => setTempo(100)}>100%</button>
               </div>
             </div>
 
@@ -2191,9 +2516,21 @@
     document.addEventListener('click', unlockAudio);
     document.addEventListener('touchend', unlockAudio);
 
-    // Register Service Worker for offline support
+    // Service Worker with Update Detection
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+              const banner = document.createElement('div');
+              banner.className = 'update-banner';
+              banner.innerHTML = '🔄 Neue Version verfügbar! <button onclick="location.reload()">Jetzt aktualisieren</button>';
+              document.body.appendChild(banner);
+            }
+          });
+        });
+      }).catch(() => {});
     }
   </script>
 </body>
