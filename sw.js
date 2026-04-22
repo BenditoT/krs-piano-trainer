@@ -1,10 +1,11 @@
 // KRS Piano Trainer — Service Worker for Offline Cache
-// v4: network-first for app shell to ensure updates reach devices immediately
-const CACHE_NAME = 'krs-piano-v4';
+// v5: Star Wars Main Theme als echte MIDI-Datei (url statt data)
+const CACHE_NAME = 'krs-piano-v5';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './songs/starwarstheme1.mid'
 ];
 
 // Install: cache core assets + force activate immediately
